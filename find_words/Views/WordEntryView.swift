@@ -2,13 +2,18 @@
 //  WordEntryView.swift
 //  find_words
 //
-//  The app's home screen. The host types a word here and taps Start Timer,
-//  which is what starts the clock — not typing — so the countdown never begins
-//  while they are still on the keyboard.
+//  The app's home screen. The host types a word here and starts the clock — not
+//  by typing, but by an explicit Start, so the countdown never begins while they
+//  are still on the keyboard.
 //
 //  The field is deliberately NOT focused on appear: bringing the keyboard up by
-//  itself competed with the tap targets on the same screen. Tapping the field
-//  still opens it.
+//  itself competed with the tap targets on the same screen.
+//
+//  Start is offered three ways on purpose. With the software keyboard up, taps
+//  on the page underneath can be swallowed entirely (seen on the simulator,
+//  where the keyboard renders invisibly but still eats taps). The keyboard bar
+//  item and the Return key both sit in the keyboard layer, so they keep working
+//  when the page-level button cannot be reached.
 //
 
 import SwiftUI
@@ -65,6 +70,11 @@ struct WordEntryView: View {
 
     // MARK: - Pieces
 
+    private func beginRound() {
+        isFieldFocused = false
+        store.startTimer()
+    }
+
     private var privacyCard: some View {
         HStack(spacing: 8) {
             Text("👀")
@@ -103,7 +113,22 @@ struct WordEntryView: View {
             .autocorrectionDisabled()
             .submitLabel(.go)
             .focused($isFieldFocused)
-            .onSubmit { store.startTimer() }
+            .onSubmit { beginRound() }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button {
+                        beginRound()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "play.fill")
+                            Text("Start Timer")
+                        }
+                        .font(PartyTheme.strong(17))
+                    }
+                    .foregroundStyle(PartyTheme.grape)
+                }
+            }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .frame(maxWidth: .infinity)
@@ -127,8 +152,7 @@ struct WordEntryView: View {
 
     private var startButton: some View {
         Button {
-            isFieldFocused = false
-            store.startTimer()
+            beginRound()
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "play.fill")
