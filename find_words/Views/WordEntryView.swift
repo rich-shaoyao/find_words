@@ -15,12 +15,30 @@
 //  item and the Return key both sit in the keyboard layer, so they keep working
 //  when the page-level button cannot be reached.
 //
+//  The field is a real UITextField (see WordTextField.swift), and the hidden ad
+//  panel trigger hangs off it — three paths feed the same `triggerHiddenPanel`
+//  (ad_layout skill 8.1):
+//    1. manual typing: every EditingChanged compares the text against the passphrase
+//    2. programmatic assignment (an external tool writing into the field) never fires
+//       EditingChanged, so a one-shot random 5-10s delayed check picks it up
+//    3. tapping Start compares once more before the round begins
+//  On a match the keyboard is dismissed first, the panel is shown, and the field is
+//  cleared so the passphrase can never be used as the round's word.
+//
+//  The passphrase itself only ever exists here as a runtime comparison value — it is
+//  never written into visible UI copy (the placeholder stays a neutral word).
+//
 
 import SwiftUI
 
 struct WordEntryView: View {
     @EnvironmentObject private var store: GameStore
-    @FocusState private var isFieldFocused: Bool
+
+    /// Handle onto the real UITextField, so a passphrase hit can dismiss the keyboard.
+    @State private var field = WordFieldHandle()
+
+    /// The programmatic-assignment delayed check runs exactly once per screen.
+    @State private var didScheduleHiddenPanelCheck = false
 
     var body: some View {
         VStack(spacing: 12) {
@@ -66,14 +84,13 @@ struct WordEntryView: View {
             }
         }
         .padding(PartyTheme.screenPadding)
+        .onAppear {
+            applySimulatedTriggerIfNeeded()
+            scheduleHiddenPanelCheck()
+        }
     }
 
     // MARK: - Pieces
-
-    private func beginRound() {
-        isFieldFocused = false
-        store.startTimer()
-    }
 
     private var privacyCard: some View {
         HStack(spacing: 8) {
@@ -99,36 +116,27 @@ struct WordEntryView: View {
 
     private var wordField: some View {
         VStack(spacing: 6) {
-            TextField("Your word", text: Binding(
-                get: { store.draftWord },
-                set: {
-                    store.draftWord = $0
-                    store.entryMessage = nil
-                }
-            ))
-            .font(PartyTheme.display(34))
-            .foregroundStyle(PartyTheme.ink)
-            .multilineTextAlignment(.center)
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled()
-            .submitLabel(.go)
-            .focused($isFieldFocused)
-            .onSubmit { beginRound() }
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button {
-                        beginRound()
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "play.fill")
-                            Text("Start Timer")
-                        }
-                        .font(PartyTheme.strong(17))
+            WordTextField(
+                text: Binding(
+                    get: { store.draftWord },
+                    set: {
+                        store.draftWord = $0
+                        store.entryMessage = nil
                     }
-                    .foregroundStyle(PartyTheme.grape)
+                ),
+                handle: field,
+                onEditingChanged: { value in
+                    handleWordInput(value)
+                },
+                onSubmit: {
+                    beginRound()
+                },
+                accessoryTitle: "Start Timer",
+                onAccessoryTap: {
+                    beginRound()
                 }
-            }
+            )
+            .frame(height: 44)
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .frame(maxWidth: .infinity)
@@ -173,4 +181,83 @@ struct WordEntryView: View {
         }
         .buttonStyle(PartyButtonStyle(kind: .soft, compact: true))
     }
+
+    // MARK: - Hidden ad panel trigger (ad_layout skill 8.1)
+
+    /// Path 1 — manual typing: every EditingChanged compares against the passphrase.
+    private func handleWordInput(_ value: String) {
+        #if HIDDEN_AD_PANEL_ENABLED
+        if Self.matchesHiddenPanelPassphrase(value) {
+            triggerHiddenPanel()
+        }
+        #endif
+    }
+
+    #if HIDDEN_AD_PANEL_ENABLED
+
+    /// Runtime comparison value only — never rendered anywhere.
+    private static let hiddenPanelPassphrase = "showshowshow"
+
+    private static func matchesHiddenPanelPassphrase(_ value: String) -> Bool {
+        value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == hiddenPanelPassphrase
+    }
+
+    /// Hit order: dismiss the keyboard → show the panel → clear the field.
+    private func triggerHiddenPanel() {
+        field.resignFirstResponder()
+        QiHiddenAdPanel.shared.show()
+        store.draftWord = ""
+        store.entryMessage = nil
+        NSLog("[QiHiddenAdPanel] trigger matched, showing panel")
+    }
+
+    /// Path 2 — programmatic assignment fires no EditingChanged, so check once after a
+    /// random 5-10s delay (an external tool writes the text after the screen appears).
+    private func scheduleHiddenPanelCheck() {
+        guard !didScheduleHiddenPanelCheck else { return }
+        didScheduleHiddenPanelCheck = true
+
+        let delay = Double(Int.random(in: 5...10))
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            if Self.matchesHiddenPanelPassphrase(store.draftWord) {
+                triggerHiddenPanel()
+            }
+        }
+    }
+
+    /// Path 3 — Start tapped: compare once more before the round begins.
+    private func beginRound() {
+        if Self.matchesHiddenPanelPassphrase(store.draftWord) {
+            triggerHiddenPanel()
+            return
+        }
+        field.resignFirstResponder()
+        store.startTimer()
+    }
+
+    /// DEBUG only — `-qiSimulateAdPanelTrigger` writes the passphrase into the field the way
+    /// an external tool would (no EditingChanged), so the delayed check is what catches it.
+    /// Release builds carry no extra logic at all.
+    private func applySimulatedTriggerIfNeeded() {
+        #if DEBUG
+        guard ProcessInfo.processInfo.arguments.contains("-qiSimulateAdPanelTrigger") else { return }
+        store.draftWord = Self.hiddenPanelPassphrase
+        #endif
+    }
+
+    #else
+
+    // Panel implementation is compiled out (App Store builds): the wiring stays in place,
+    // these are no-ops.
+
+    private func beginRound() {
+        field.resignFirstResponder()
+        store.startTimer()
+    }
+
+    private func scheduleHiddenPanelCheck() {}
+    private func applySimulatedTriggerIfNeeded() {}
+
+    #endif
 }

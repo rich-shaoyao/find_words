@@ -27,6 +27,18 @@ struct RootView: View {
         }
         .environmentObject(store)
         .animation(.easeInOut(duration: 0.28), value: store.phase)
+        .overlay {
+            hiddenAdPanelOverlay
+        }
+    }
+
+    /// Hidden ad panel (ad_layout skill 8) sits above every screen while it is open.
+    /// With the macro off the whole implementation is compiled out, so this is empty.
+    @ViewBuilder
+    private var hiddenAdPanelOverlay: some View {
+        #if HIDDEN_AD_PANEL_ENABLED
+        HiddenAdPanelOverlay()
+        #endif
     }
 }
 

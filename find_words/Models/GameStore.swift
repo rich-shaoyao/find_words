@@ -9,10 +9,20 @@
 //  project builds with a plain `xcodebuild` on toolchains that cannot load the
 //  macro plugin.
 //
+//  The whole class is @MainActor. Every @Published write here drives a SwiftUI
+//  rebuild, and the writes come from background-hopping tasks (the countdown
+//  loop, the Correct/Skip flash delay). Without the annotation those tasks ran
+//  off the main thread — `Task {}` in a nonisolated method does not hop back —
+//  so the UI was rebuilt from a background thread, which made the screen stop
+//  responding right after a Correct tap. The annotation makes the tasks inherit
+//  the main actor, so publishes land on the main thread where SwiftUI needs
+//  them.
+//
 
 import Foundation
 import SwiftUI
 
+@MainActor
 final class GameStore: ObservableObject {
 
     // MARK: - Navigation

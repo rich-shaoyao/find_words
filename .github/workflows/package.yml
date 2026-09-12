@@ -1,0 +1,100 @@
+name: CI Package (pre-release verification)
+
+# Cloud build for a project whose local Xcode is too old to link the current ad SDKs
+# (Google-Mobile-Ads-SDK 11.7.0 pulls iOS 18 SDK symbols such as MarketplaceKit).
+# macos-latest ships a new enough Xcode, so the archive links fine here.
+#
+# Two configurations are archived:
+#   Debug   — carries the hidden ad panel (HIDDEN_AD_PANEL_ENABLED is Debug-only), so the
+#             panel + AdMob load/show/reload chain can be verified on a device.
+#   Release — the shipping shape (panel compiled out).
+#
+# Signing is optional: with no DIST_CERT_P12 secret the archive is built unsigned
+# (CODE_SIGNING_ALLOWED=NO) and the ipa needs re-signing locally before installing.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  package:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [ Debug, Release ]
+    env:
+      # NOTE: `if:` cannot reference the secrets context directly (invalid workflow),
+      # so the flag is computed here and consumed through env.
+      HAS_CERT: ${{ secrets.DIST_CERT_P12 != '' }}
+      CONFIG: ${{ matrix.configuration }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install CocoaPods dependencies
+        run: |
+          export LANG=en_US.UTF-8
+          if ! command -v pod >/dev/null 2>&1; then
+            sudo gem install cocoapods
+          fi
+          pod install
+          # The workspace is what gets built from here on (CocoaPods integration).
+          test -d find_words.xcworkspace
+
+      - name: Import distribution certificate
+        if: env.HAS_CERT == 'true'
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.DIST_CERT_P12 }}
+          p12-password: ${{ secrets.DIST_CERT_PASSWORD }}
+
+      - name: Install provisioning profile
+        if: env.HAS_CERT == 'true'
+        run: |
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          echo "${{ secrets.PROVISIONING_PROFILE }}" | base64 -d > "$HOME/Library/MobileDevice/Provisioning Profiles/find_words.mobileprovision"
+
+      - name: Archive (unsigned by default; signed when cert secrets are configured)
+        env:
+          CERT_P12: ${{ secrets.DIST_CERT_P12 }}
+          TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
+          PROFILE_SPECIFIER: ${{ secrets.PROVISIONING_PROFILE_SPECIFIER }}
+        run: |
+          if [ -n "$CERT_P12" ]; then
+            xcodebuild archive \
+              -workspace find_words.xcworkspace -scheme find_words \
+              -configuration "$CONFIG" \
+              -destination 'generic/platform=iOS' \
+              -archivePath build/find_words.xcarchive \
+              DEVELOPMENT_TEAM="$TEAM_ID" \
+              CODE_SIGN_STYLE=Manual \
+              PROVISIONING_PROFILE_SPECIFIER="$PROFILE_SPECIFIER" \
+              -allowProvisioningUpdates
+          else
+            xcodebuild archive \
+              -workspace find_words.xcworkspace -scheme find_words \
+              -configuration "$CONFIG" \
+              -destination 'generic/platform=iOS' \
+              -archivePath build/find_words.xcarchive \
+              CODE_SIGNING_ALLOWED=NO
+          fi
+
+      - name: Package ipa
+        run: |
+          mkdir -p Payload
+          cp -R build/find_words.xcarchive/Products/Applications/find_words.app Payload/
+          zip -q -r -y "find_words-${CONFIG}.ipa" Payload/
+
+      - name: Verify bundle
+        run: |
+          unzip -t "find_words-${CONFIG}.ipa" > /dev/null && echo "ipa zip OK"
+          file Payload/find_words.app/find_words
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" Payload/find_words.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :GADApplicationIdentifier" Payload/find_words.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :SKAdNetworkItems:0:SKAdNetworkIdentifier" Payload/find_words.app/Info.plist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: find_words-ipa-${{ matrix.configuration }}
+          path: find_words-${{ matrix.configuration }}.ipa
