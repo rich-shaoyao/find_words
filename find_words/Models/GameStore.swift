@@ -141,17 +141,21 @@ final class GameStore: ObservableObject {
         phase = .wordEntry
     }
 
-    /// The host is done typing: kick off the clock immediately.
+    /// The host is done typing: kick off the clock immediately. If the field
+    /// is still empty (or too short), fall back to a random word so the tap
+    /// always starts the game — matching the "launch and play" home screen.
     func startTimer() {
         guard phase == .wordEntry else { return }
         let cleaned = draftWord.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard cleaned.count >= GameRules.minimumWordLength else {
-            entryMessage = "Enter a word with at least \(GameRules.minimumWordLength) letters."
-            return
+        let finalWord: String
+        if cleaned.count >= GameRules.minimumWordLength {
+            finalWord = cleaned
+        } else {
+            finalWord = WordBank.random(excluding: cleaned)
         }
 
-        word = cleaned
+        word = finalWord
         draftWord = ""
         entryMessage = nil
         timeRemaining = Double(roundDuration)
@@ -310,14 +314,5 @@ final class GameStore: ObservableObject {
         defaults.set(wordsIsCustom, forKey: Keys.wordsIsCustom)
         defaults.set(customDuration, forKey: Keys.customDuration)
         defaults.set(customWords, forKey: Keys.customWords)
-    }
-
-    // MARK: - TEMP verification hook (removed before shipping)
-    func applyDemoPhaseIfNeeded() {
-        guard let raw = ProcessInfo.processInfo.environment["FW_DEMO"] else { return }
-        switch raw {
-        case "wordEntry": startGame()
-        default: break
-        }
     }
 }
