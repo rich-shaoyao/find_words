@@ -11,7 +11,7 @@ import SwiftUI
 struct find_wordsApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
         }
     }
 }

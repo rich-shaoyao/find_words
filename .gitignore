@@ -29,6 +29,7 @@ playground.xcworkspace
 
 # Local agent tooling state
 reasonix.toml
+.reasonix/
 
 # fastlane
 fastlane/report.xml
