@@ -133,6 +133,9 @@ final class GameStore: ObservableObject {
     }
 
     private func prepareRound() {
+        timerTask?.cancel()
+        timeoutTask?.cancel()
+        isResolving = false
         word = ""
         draftWord = ""
         entryMessage = nil
@@ -196,6 +199,7 @@ final class GameStore: ObservableObject {
     }
 
     private func finishRound(correct: Bool) {
+        isResolving = false
         wordsPlayed += 1
         if correct { correctCount += 1 }
 
@@ -210,6 +214,7 @@ final class GameStore: ObservableObject {
     func finishEarly() {
         timerTask?.cancel()
         timeoutTask?.cancel()
+        isResolving = false
         flash = nil
         endedEarly = true
         phase = .summary
@@ -229,6 +234,7 @@ final class GameStore: ObservableObject {
         timerTask?.cancel()
         timeoutTask?.cancel()
         homeShowsSettings = showingSettings
+        isResolving = false
         word = ""
         draftWord = ""
         entryMessage = nil
@@ -262,7 +268,7 @@ final class GameStore: ObservableObject {
     }
 
     private func timeDidExpire() {
-        guard phase == .playing else { return }
+        guard phase == .playing, !isResolving else { return }
         timerTask?.cancel()
         phase = .timedOut
         Haptics.notify(.warning)
