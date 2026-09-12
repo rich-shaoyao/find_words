@@ -14,25 +14,24 @@ struct PartyBackground: View {
         ZStack {
             PartyTheme.canvas
 
-            Circle()
-                .fill(Color.white.opacity(0.18))
-                .frame(width: 340, height: 340)
-                .blur(radius: 70)
-                .offset(x: -130, y: -270)
-
-            Circle()
-                .fill(PartyTheme.lemon.opacity(0.38))
-                .frame(width: 280, height: 280)
-                .blur(radius: 80)
-                .offset(x: 150, y: 320)
-
-            Circle()
-                .fill(PartyTheme.teal.opacity(0.30))
-                .frame(width: 220, height: 220)
-                .blur(radius: 70)
-                .offset(x: -160, y: 380)
+            // Soft colour blooms. Built from RadialGradient instead of
+            // Circle().blur(radius:): visually equivalent, but it avoids the
+            // large-radius gaussian blur that is costly to rasterise on the
+            // simulator software path (and costs battery on device).
+            bloom(Color.white.opacity(0.42), center: .init(x: 0.16, y: 0.06), radius: 340)
+            bloom(PartyTheme.lemon.opacity(0.46), center: .init(x: 0.94, y: 0.86), radius: 360)
+            bloom(PartyTheme.teal.opacity(0.38), center: .init(x: 0.04, y: 0.92), radius: 300)
         }
         .ignoresSafeArea()
+    }
+
+    private func bloom(_ color: Color, center: UnitPoint, radius: CGFloat) -> some View {
+        RadialGradient(
+            colors: [color, color.opacity(0)],
+            center: center,
+            startRadius: 0,
+            endRadius: radius
+        )
     }
 }
 
