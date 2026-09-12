@@ -2,12 +2,12 @@
 //  GameStore.swift
 //  find_words
 //
-//  The whole game lives here: players, round rotation, the countdown and scoring.
-//  Views stay dumb and just render `phase`.
+//  Whole game state for the single-host mode: settings, the round loop, the
+//  countdown, and the one number that matters — how many words were guessed.
 //
-//  Built on ObservableObject/@Published rather than the @Observable macro: macro
-//  plugins are not loadable on every toolchain, and this keeps the project
-//  buildable with a plain `xcodebuild`.
+//  Built on ObservableObject/@Published rather than the @Observable macro, so the
+//  project builds with a plain `xcodebuild` on toolchains that cannot load the
+//  macro plugin.
 //
 
 import Foundation
@@ -19,18 +19,29 @@ final class GameStore: ObservableObject {
 
     @Published var phase: GamePhase = .home
 
-    // MARK: - Setup
+    /// Set by "Settings" on the summary screen so the panel reopens on Home.
+    @Published var homeShowsSettings = false
 
-    @Published private(set) var players: [Player] = []
-    @Published var roundDuration: Int = GameRules.defaultRoundDuration
+    // MARK: - Configuration
 
-    // MARK: - Current round
+    @Published private(set) var roundDuration: Int = GameRules.defaultTime
+    @Published private(set) var durationIsCustom = false
+    @Published private(set) var totalWords: Int = GameRules.defaultWords
+    @Published private(set) var wordsIsCustom = false
 
-    /// Zero-based index of the round being played.
-    @Published private(set) var roundIndex: Int = 0
+    /// Remembered custom values, so switching back to Custom restores them.
+    @Published private(set) var customDuration = GameRules.initialCustomTime
+    @Published private(set) var customWords = GameRules.initialCustomWords
+
+    // MARK: - Live round
+
+    /// Words used up so far — correct, skipped and timed out all count.
+    @Published private(set) var wordsPlayed: Int = 0
+    @Published private(set) var correctCount: Int = 0
     @Published private(set) var word: String = ""
     @Published private(set) var timeRemaining: Double = 0
-    @Published private(set) var outcome: RoundOutcome?
+    @Published private(set) var flash: RoundFlash?
+    @Published private(set) var endedEarly = false
 
     // MARK: - Word entry draft
 
@@ -38,104 +49,115 @@ final class GameStore: ObservableObject {
     @Published var entryMessage: String?
 
     private var timerTask: Task<Void, Never>?
-    private var nextTintIndex: Int = 0
+    private var timeoutTask: Task<Void, Never>?
+    private var isResolving = false
+
+    // MARK: - Lifecycle
+
+    init() {
+        loadConfig()
+    }
 
     // MARK: - Derived state
 
-    var totalRounds: Int { max(players.count, 1) }
+    /// 1-based index of the word being played right now.
+    var roundNumber: Int { min(wordsPlayed + 1, totalWords) }
 
-    /// 1-based round number for display, clamped on the game-over screen.
-    var roundNumber: Int { min(roundIndex + 1, totalRounds) }
+    var isLastWord: Bool { wordsPlayed + 1 >= totalWords }
 
-    var describerIndex: Int {
-        guard !players.isEmpty else { return 0 }
-        return roundIndex % players.count
+    var canStartRound: Bool {
+        draftWord.trimmingCharacters(in: .whitespacesAndNewlines).count >= GameRules.minimumWordLength
     }
 
-    /// The player who already described last round hands out the next word.
-    var setterIndex: Int {
-        guard !players.isEmpty else { return 0 }
-        return (roundIndex + players.count - 1) % players.count
+    /// Share of played words that were guessed, 0...1.
+    var accuracy: Double {
+        wordsPlayed == 0 ? 0 : Double(correctCount) / Double(wordsPlayed)
     }
 
-    var describer: Player? { player(at: describerIndex) }
-    var setter: Player? { player(at: setterIndex) }
-
-    func player(at index: Int) -> Player? {
-        players.indices.contains(index) ? players[index] : nil
+    var configSummary: String {
+        let noun = totalWords == 1 ? "word" : "words"
+        return "\(totalWords) \(noun) · \(roundDuration)s each"
     }
 
-    func player(id: UUID) -> Player? {
-        players.first { $0.id == id }
+    // MARK: - Configuration
+
+    func selectPresetDuration(_ seconds: Int) {
+        roundDuration = seconds
+        durationIsCustom = false
+        persistConfig()
     }
 
-    var canStartGame: Bool { players.count >= GameRules.minimumPlayers }
-
-    var canAddPlayer: Bool { players.count < GameRules.maximumPlayers }
-
-    var ranking: [Player] {
-        players.sorted {
-            $0.score == $1.score ? $0.name < $1.name : $0.score > $1.score
-        }
+    func selectCustomDuration() {
+        roundDuration = customDuration
+        durationIsCustom = true
+        persistConfig()
     }
 
-    var topScore: Int { players.map(\.score).max() ?? 0 }
-
-    var winners: [Player] { players.filter { $0.score == topScore } }
-
-    var isTie: Bool { winners.count > 1 }
-
-    var isLastRound: Bool { roundIndex >= totalRounds - 1 }
-
-    // MARK: - Player management
-
-    func addPlayer() {
-        guard canAddPlayer else { return }
-        players.append(
-            Player(name: "Player \(players.count + 1)", tintIndex: nextTintIndex)
-        )
-        nextTintIndex += 1
+    func setCustomDuration(_ seconds: Int) {
+        customDuration = clamped(seconds, to: GameRules.customTimeRange)
+        roundDuration = customDuration
+        durationIsCustom = true
+        persistConfig()
     }
 
-    func removePlayer(id: UUID) {
-        players.removeAll { $0.id == id }
+    func selectPresetWords(_ count: Int) {
+        totalWords = count
+        wordsIsCustom = false
+        persistConfig()
     }
 
-    func rename(id: UUID, to name: String) {
-        guard let index = players.firstIndex(where: { $0.id == id }) else { return }
-        players[index].name = name
+    func selectCustomWords() {
+        totalWords = customWords
+        wordsIsCustom = true
+        persistConfig()
+    }
+
+    func setCustomWords(_ count: Int) {
+        customWords = clamped(count, to: GameRules.customWordRange)
+        totalWords = customWords
+        wordsIsCustom = true
+        persistConfig()
+    }
+
+    private func clamped(_ value: Int, to range: ClosedRange<Int>) -> Int {
+        min(max(value, range.lowerBound), range.upperBound)
     }
 
     // MARK: - Game flow
 
     func startGame() {
-        guard canStartGame else { return }
-        for index in players.indices {
-            players[index].score = 0
-        }
-        roundIndex = 0
+        wordsPlayed = 0
+        correctCount = 0
+        endedEarly = false
         prepareRound()
     }
 
     private func prepareRound() {
         word = ""
-        outcome = nil
         draftWord = ""
         entryMessage = nil
         timeRemaining = 0
+        flash = nil
         phase = .wordEntry
     }
 
-    func lockInWord() {
+    /// The host is done typing: kick off the clock immediately.
+    func startTimer() {
+        guard phase == .wordEntry else { return }
         let cleaned = draftWord.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard cleaned.count >= 2 else {
-            entryMessage = "Pick a word with at least 2 letters."
+
+        guard cleaned.count >= GameRules.minimumWordLength else {
+            entryMessage = "Enter a word with at least \(GameRules.minimumWordLength) letters."
             return
         }
+
         word = cleaned
-        entryMessage = nil
         draftWord = ""
-        phase = .handoff
+        entryMessage = nil
+        timeRemaining = Double(roundDuration)
+        phase = .playing
+        Haptics.impact(.light)
+        startCountdown()
     }
 
     func fillRandomWord() {
@@ -143,81 +165,83 @@ final class GameStore: ObservableObject {
         entryMessage = nil
     }
 
-    /// Called by the Describer once the phone has been handed over.
-    func revealWordAndStart() {
-        outcome = nil
-        timerTask?.cancel()
-        timeRemaining = Double(roundDuration)
-        phase = .playing
-        startCountdown()
-    }
+    func markCorrect() { resolveRound(correct: true) }
 
-    func markGuessed() {
-        timerTask?.cancel()
-        outcome = .awaitingGuess
-        phase = .roundResult
-    }
+    func markSkipped() { resolveRound(correct: false) }
 
-    func assignGuess(to playerID: UUID) {
-        guard outcome == .awaitingGuess else { return }
-        outcome = .guessed(playerID)
-        if let index = players.firstIndex(where: { $0.id == playerID }) {
-            players[index].score += 1
+    /// Shows a short flash, then advances. `isResolving` stops double taps.
+    private func resolveRound(correct: Bool) {
+        guard phase == .playing, !isResolving else { return }
+        isResolving = true
+        timerTask?.cancel()
+
+        flash = correct ? .correct : .skipped
+        if correct {
+            Haptics.notify(.success)
+        } else {
+            Haptics.impact(.rigid)
+        }
+
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(GameRules.flashDuration * 1_000_000_000))
+            guard let self else { return }
+            self.flash = nil
+            self.finishRound(correct: correct)
+            self.isResolving = false
         }
     }
 
-    func skipRound() {
-        timerTask?.cancel()
-        outcome = .skipped
-        phase = .roundResult
-    }
+    private func finishRound(correct: Bool) {
+        wordsPlayed += 1
+        if correct { correctCount += 1 }
 
-    func advance() {
-        timerTask?.cancel()
-        if isLastRound {
-            phase = .gameOver
+        if wordsPlayed >= totalWords {
+            phase = .summary
         } else {
-            roundIndex += 1
             prepareRound()
         }
+    }
+
+    /// The host bailed out mid-game via the ✕ button.
+    func finishEarly() {
+        timerTask?.cancel()
+        timeoutTask?.cancel()
+        flash = nil
+        endedEarly = true
+        phase = .summary
+    }
+
+    func continueAfterTimeout() {
+        guard phase == .timedOut else { return }
+        timeoutTask?.cancel()
+        finishRound(correct: false)
     }
 
     func playAgain() {
         startGame()
     }
 
-    func backToSetup() {
+    func backToHome(showingSettings: Bool = false) {
         timerTask?.cancel()
+        timeoutTask?.cancel()
+        homeShowsSettings = showingSettings
         word = ""
-        outcome = nil
         draftWord = ""
         entryMessage = nil
-        for index in players.indices {
-            players[index].score = 0
-        }
-        roundIndex = 0
-        phase = .setup
-    }
-
-    func backToHome() {
-        timerTask?.cancel()
-        word = ""
-        outcome = nil
-        draftWord = ""
-        entryMessage = nil
-        roundIndex = 0
-        for index in players.indices {
-            players[index].score = 0
-        }
+        flash = nil
+        timeRemaining = 0
+        wordsPlayed = 0
+        correctCount = 0
+        endedEarly = false
         phase = .home
     }
 
     // MARK: - Countdown
 
     private func startCountdown() {
-        let total = Double(roundDuration)
-        let deadline = Date().addingTimeInterval(total)
         timerTask?.cancel()
+        let deadline = Date().addingTimeInterval(Double(roundDuration))
+
         timerTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 50_000_000)
@@ -225,7 +249,7 @@ final class GameStore: ObservableObject {
                 let left = deadline.timeIntervalSinceNow
                 if left <= 0 {
                     self.timeRemaining = 0
-                    self.endWithTimeout()
+                    self.timeDidExpire()
                     return
                 }
                 self.timeRemaining = left
@@ -233,9 +257,58 @@ final class GameStore: ObservableObject {
         }
     }
 
-    private func endWithTimeout() {
+    private func timeDidExpire() {
         guard phase == .playing else { return }
-        outcome = .timeUp
-        phase = .roundResult
+        timerTask?.cancel()
+        phase = .timedOut
+        Haptics.notify(.warning)
+
+        timeoutTask?.cancel()
+        timeoutTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(GameRules.timeoutLinger * 1_000_000_000))
+            guard let self, !Task.isCancelled else { return }
+            self.continueAfterTimeout()
+        }
+    }
+
+    // MARK: - Persistence
+
+    private enum Keys {
+        static let duration = "fw.roundDuration"
+        static let durationIsCustom = "fw.durationIsCustom"
+        static let words = "fw.totalWords"
+        static let wordsIsCustom = "fw.wordsIsCustom"
+        static let customDuration = "fw.customDuration"
+        static let customWords = "fw.customWords"
+    }
+
+    private func loadConfig() {
+        let defaults = UserDefaults.standard
+        guard defaults.object(forKey: Keys.duration) != nil else { return }
+
+        roundDuration = clamped(defaults.integer(forKey: Keys.duration), to: GameRules.customTimeRange)
+        durationIsCustom = defaults.bool(forKey: Keys.durationIsCustom)
+        totalWords = clamped(defaults.integer(forKey: Keys.words), to: GameRules.customWordRange)
+        wordsIsCustom = defaults.bool(forKey: Keys.wordsIsCustom)
+
+        let savedCustomDuration = defaults.integer(forKey: Keys.customDuration)
+        if GameRules.customTimeRange.contains(savedCustomDuration) {
+            customDuration = savedCustomDuration
+        }
+
+        let savedCustomWords = defaults.integer(forKey: Keys.customWords)
+        if GameRules.customWordRange.contains(savedCustomWords) {
+            customWords = savedCustomWords
+        }
+    }
+
+    private func persistConfig() {
+        let defaults = UserDefaults.standard
+        defaults.set(roundDuration, forKey: Keys.duration)
+        defaults.set(durationIsCustom, forKey: Keys.durationIsCustom)
+        defaults.set(totalWords, forKey: Keys.words)
+        defaults.set(wordsIsCustom, forKey: Keys.wordsIsCustom)
+        defaults.set(customDuration, forKey: Keys.customDuration)
+        defaults.set(customWords, forKey: Keys.customWords)
     }
 }

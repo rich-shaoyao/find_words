@@ -6,6 +6,20 @@
 //
 
 import SwiftUI
+import UIKit
+
+// MARK: - Haptics
+
+/// Tiny wrapper so screens (and the store) can buzz without importing UIKit everywhere.
+enum Haptics {
+    static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .medium) {
+        UIImpactFeedbackGenerator(style: style).impactOccurred()
+    }
+
+    static func notify(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+        UINotificationFeedbackGenerator().notificationOccurred(type)
+    }
+}
 
 // MARK: - Background
 
@@ -41,8 +55,8 @@ struct PartyButtonStyle: ButtonStyle {
 
     enum Kind {
         case primary   // white pill, dark text — the main call to action
-        case success   // green gradient — "Got it!"
-        case warning   // orange gradient — "Skip"
+        case success   // green gradient
+        case warning   // orange gradient
         case soft      // translucent — secondary actions
     }
 
@@ -104,40 +118,34 @@ struct RoundIconButton: View {
     }
 }
 
-// MARK: - Avatars & pills
-
-struct AvatarCircle: View {
-    let name: String
-    let tint: Color
-    var diameter: CGFloat = 54
+/// One option in a segmented row, e.g. "30s" / "Custom".
+struct ChoiceChip: View {
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
 
     var body: some View {
-        ZStack {
-            Circle().fill(tint)
-            Text(initials)
-                .font(PartyTheme.display(diameter * 0.38))
-                .foregroundStyle(.white)
-                .minimumScaleFactor(0.5)
+        Button(action: action) {
+            Text(label)
+                .font(PartyTheme.strong(14))
                 .lineLimit(1)
-                .padding(diameter * 0.12)
+                .minimumScaleFactor(0.65)
+                .foregroundStyle(isSelected ? PartyTheme.ink : .white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 11)
+                .padding(.horizontal, 4)
+                .background(
+                    isSelected ? AnyShapeStyle(Color.white) : AnyShapeStyle(Color.white.opacity(0.16)),
+                    in: Capsule(style: .continuous)
+                )
         }
-        .frame(width: diameter, height: diameter)
-        .overlay(Circle().strokeBorder(.white.opacity(0.75), lineWidth: 2))
-        .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
-    }
-
-    private var initials: String {
-        let letters = name
-            .split(separator: " ")
-            .prefix(2)
-            .compactMap { $0.first }
-            .map(String.init)
-            .joined()
-        return letters.isEmpty ? "?" : letters.uppercased()
+        .buttonStyle(.plain)
     }
 }
 
-/// Rounded translucent label, e.g. "ROUND 2 OF 4".
+// MARK: - Pills
+
+/// Rounded translucent label, e.g. "WORD 2 OF 10".
 struct RoundPill: View {
     let text: String
     var systemImage: String?
@@ -159,27 +167,21 @@ struct RoundPill: View {
     }
 }
 
-/// "Describer" / "Setter" caption above a player name.
-struct RoleCaption: View {
-    let role: String
-    let name: String
-    let tint: Color
-    var size: CGFloat = 30
+/// "✓ 3 correct" counter shown while playing.
+struct ScorePill: View {
+    let count: Int
 
     var body: some View {
-        VStack(spacing: 4) {
-            Text(role)
-                .font(PartyTheme.strong(12))
-                .foregroundStyle(.white.opacity(0.8))
-                .textCase(.uppercase)
-                .kerning(1.2)
-            Text(name)
-                .font(PartyTheme.display(size))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
+        HStack(spacing: 6) {
+            Image(systemName: "checkmark.circle.fill")
+            Text("\(count)")
+                .monospacedDigit()
         }
-        .frame(maxWidth: .infinity)
+        .font(PartyTheme.strong(14))
+        .foregroundStyle(.white)
+        .padding(.horizontal, 13)
+        .padding(.vertical, 8)
+        .background(PartyTheme.lime.opacity(0.55), in: Capsule())
     }
 }
 
@@ -241,85 +243,3 @@ struct TimerBar: View {
         .animation(.linear(duration: 0.15), value: fraction)
     }
 }
-
-// MARK: - Leaderboard
-
-struct LeaderboardRow: View {
-    let rank: Int
-    let player: Player
-    var highlight: Bool = false
-
-    private var medal: String? {
-        switch rank {
-        case 1: return "🥇"
-        case 2: return "🥈"
-        case 3: return "🥉"
-        default: return nil
-        }
-    }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Text(medal ?? "\(rank)")
-                .font(PartyTheme.display(medal == nil ? 17 : 22))
-                .foregroundStyle(.white.opacity(medal == nil ? 0.6 : 1))
-                .frame(width: 30)
-
-            AvatarCircle(name: player.displayName, tint: player.tint, diameter: 40)
-
-            Text(player.displayName)
-                .font(PartyTheme.strong(19))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-
-            Spacer(minLength: 8)
-
-            Text("\(player.score)")
-                .font(PartyTheme.display(24))
-                .foregroundStyle(.white)
-                .monospacedDigit()
-
-            Text(player.score == 1 ? "pt" : "pts")
-                .font(PartyTheme.regular(12))
-                .foregroundStyle(.white.opacity(0.7))
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(
-            Color.white.opacity(highlight ? 0.26 : 0.12),
-            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
-        )
-    }
-}
-
-/// Compact "who guessed it" tile used after a correct guess.
-struct GuesserTile: View {
-    let player: Player
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                AvatarCircle(name: player.displayName, tint: player.tint, diameter: 58)
-                Text(player.displayName)
-                    .font(PartyTheme.strong(15))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(
-                Color.white.opacity(0.16),
-                in: RoundedRectangle(cornerRadius: 22, style: .continuous)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .strokeBorder(player.tint.opacity(0.9), lineWidth: 2)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
-

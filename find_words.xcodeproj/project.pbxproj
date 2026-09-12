@@ -15,12 +15,10 @@
 		FC0000000000000000000004 /* PartyComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000004 /* PartyComponents.swift */; };
 		FC0000000000000000000005 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000005 /* HomeView.swift */; };
 		FC0000000000000000000006 /* HowToPlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000006 /* HowToPlayView.swift */; };
-		FC0000000000000000000007 /* PlayerSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000007 /* PlayerSetupView.swift */; };
+		FC0000000000000000000007 /* TimedOutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000007 /* TimedOutView.swift */; };
 		FC0000000000000000000008 /* WordEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000008 /* WordEntryView.swift */; };
-		FC0000000000000000000009 /* HandoffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000009 /* HandoffView.swift */; };
 		FC0000000000000000000010 /* RoundPlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000010 /* RoundPlayView.swift */; };
-		FC0000000000000000000011 /* RoundResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000011 /* RoundResultView.swift */; };
-		FC0000000000000000000012 /* GameOverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000012 /* GameOverView.swift */; };
+		FC0000000000000000000012 /* SummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000012 /* SummaryView.swift */; };
 		D59B983E3055118100726A96 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D59B983D3055118100726A96 /* Assets.xcassets */; };
 		D59B98413055118100726A96 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D59B98403055118100726A96 /* Preview Assets.xcassets */; };
 /* End PBXBuildFile section */
@@ -35,12 +33,10 @@
 		FB0000000000000000000004 /* PartyComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartyComponents.swift; sourceTree = "<group>"; };
 		FB0000000000000000000005 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		FB0000000000000000000006 /* HowToPlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HowToPlayView.swift; sourceTree = "<group>"; };
-		FB0000000000000000000007 /* PlayerSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSetupView.swift; sourceTree = "<group>"; };
+		FB0000000000000000000007 /* TimedOutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimedOutView.swift; sourceTree = "<group>"; };
 		FB0000000000000000000008 /* WordEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordEntryView.swift; sourceTree = "<group>"; };
-		FB0000000000000000000009 /* HandoffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandoffView.swift; sourceTree = "<group>"; };
 		FB0000000000000000000010 /* RoundPlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundPlayView.swift; sourceTree = "<group>"; };
-		FB0000000000000000000011 /* RoundResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundResultView.swift; sourceTree = "<group>"; };
-		FB0000000000000000000012 /* GameOverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameOverView.swift; sourceTree = "<group>"; };
+		FB0000000000000000000012 /* SummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummaryView.swift; sourceTree = "<group>"; };
 		D59B983D3055118100726A96 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D59B98403055118100726A96 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -125,12 +121,10 @@
 			children = (
 				FB0000000000000000000005 /* HomeView.swift */,
 				FB0000000000000000000006 /* HowToPlayView.swift */,
-				FB0000000000000000000007 /* PlayerSetupView.swift */,
+				FB0000000000000000000007 /* TimedOutView.swift */,
 				FB0000000000000000000008 /* WordEntryView.swift */,
-				FB0000000000000000000009 /* HandoffView.swift */,
 				FB0000000000000000000010 /* RoundPlayView.swift */,
-				FB0000000000000000000011 /* RoundResultView.swift */,
-				FB0000000000000000000012 /* GameOverView.swift */,
+				FB0000000000000000000012 /* SummaryView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -212,12 +206,10 @@
 				FC0000000000000000000004 /* PartyComponents.swift in Sources */,
 				FC0000000000000000000005 /* HomeView.swift in Sources */,
 				FC0000000000000000000006 /* HowToPlayView.swift in Sources */,
-				FC0000000000000000000007 /* PlayerSetupView.swift in Sources */,
+				FC0000000000000000000007 /* TimedOutView.swift in Sources */,
 				FC0000000000000000000008 /* WordEntryView.swift in Sources */,
-				FC0000000000000000000009 /* HandoffView.swift in Sources */,
 				FC0000000000000000000010 /* RoundPlayView.swift in Sources */,
-				FC0000000000000000000011 /* RoundResultView.swift in Sources */,
-				FC0000000000000000000012 /* GameOverView.swift in Sources */,
+				FC0000000000000000000012 /* SummaryView.swift in Sources */,
 				D59B983A3055117F00726A96 /* find_wordsApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

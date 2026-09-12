@@ -18,19 +18,19 @@ struct HowToPlayView: View {
     private let steps: [Step] = [
         Step(emoji: "✍️",
              title: "1. Set the word",
-             detail: "One player secretly types a word. Nobody else looks at the screen."),
-        Step(emoji: "📱",
-             title: "2. Pass the phone",
-             detail: "Hand it to the Describer — the only player allowed to see the word."),
+             detail: "Type one word. Keep the screen to yourself — nobody else should read it."),
+        Step(emoji: "⏱️",
+             title: "2. Hit Start Timer",
+             detail: "The clock starts the moment you tap. It runs for the whole word."),
         Step(emoji: "🗣️",
              title: "3. Describe it",
-             detail: "Explain the word out loud. Never say the word itself, or any part of it."),
-        Step(emoji: "🙋",
-             title: "4. Guess it",
-             detail: "Everyone else shouts guesses. Whoever gets it right scores a point."),
-        Step(emoji: "🔁",
-             title: "5. Rotate & repeat",
-             detail: "Every player describes once. Highest score when the last round ends wins.")
+             detail: "Explain the word out loud. Say anything except the word itself."),
+        Step(emoji: "✅",
+             title: "4. Correct or Skip",
+             detail: "Tap Correct when someone guesses it. Tap Skip to move on."),
+        Step(emoji: "🎯",
+             title: "5. Only correct counts",
+             detail: "The final score is how many words were guessed. Skipping doesn't score, but it does use up one of your words.")
     ]
 
     var body: some View {
@@ -50,12 +50,12 @@ struct HowToPlayView: View {
                     ForEach(steps) { step in
                         HStack(alignment: .top, spacing: 14) {
                             Text(step.emoji)
-                                .font(.system(size: 32))
-                                .frame(width: 44)
+                                .font(.system(size: 30))
+                                .frame(width: 42)
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(step.title)
-                                    .font(PartyTheme.strong(19))
+                                    .font(PartyTheme.strong(18))
                                     .foregroundStyle(.white)
                                 Text(step.detail)
                                     .font(PartyTheme.regular(15))
@@ -65,21 +65,22 @@ struct HowToPlayView: View {
 
                             Spacer(minLength: 0)
                         }
-                        .padding(16)
+                        .padding(15)
                         .background(
                             Color.white.opacity(0.14),
                             in: RoundedRectangle(cornerRadius: 22, style: .continuous)
                         )
                     }
 
-                    Text("Tip: you need at least \(GameRules.minimumPlayers) players — one to set the word, one to describe it, and one to guess.")
+                    Text("Round length and word count are set on the home screen.")
                         .font(PartyTheme.regular(14))
                         .foregroundStyle(.white.opacity(0.8))
                         .multilineTextAlignment(.center)
-                        .padding(.top, 6)
+                        .padding(.top, 4)
                 }
                 .padding(.bottom, 8)
             }
+            .scrollBounceBehavior(.basedOnSize)
 
             Button("Got It") {
                 store.phase = .home

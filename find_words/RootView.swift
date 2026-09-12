@@ -15,14 +15,12 @@ struct RootView: View {
             PartyBackground()
 
             switch store.phase {
-            case .home:        HomeView()
-            case .setup:       PlayerSetupView()
-            case .howToPlay:   HowToPlayView()
-            case .wordEntry:   WordEntryView()
-            case .handoff:     HandoffView()
-            case .playing:     RoundPlayView()
-            case .roundResult: RoundResultView()
-            case .gameOver:    GameOverView()
+            case .home:      HomeView()
+            case .howToPlay: HowToPlayView()
+            case .wordEntry: WordEntryView()
+            case .playing:   RoundPlayView()
+            case .timedOut:  TimedOutView()
+            case .summary:   SummaryView()
             }
         }
         .environmentObject(store)
