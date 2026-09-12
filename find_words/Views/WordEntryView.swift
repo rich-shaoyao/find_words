@@ -123,8 +123,7 @@ struct WordEntryView: View {
             }
         }
         .buttonStyle(PartyButtonStyle(kind: .primary))
-        .disabled(!store.canStartRound)
-        .opacity(store.canStartRound ? 1 : 0.45)
+        .opacity(store.canStartRound ? 1 : 0.55)
         .animation(.snappy(duration: 0.2), value: store.canStartRound)
     }
 }
