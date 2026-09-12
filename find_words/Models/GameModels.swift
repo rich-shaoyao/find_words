@@ -11,9 +11,9 @@ import Foundation
 // MARK: - Flow
 
 enum GamePhase: Equatable {
-    case home
+    case settings
     case howToPlay
-    /// The host types the next secret word.
+    /// Entry screen and de-facto home: type a word, then start the clock.
     case wordEntry
     /// The clock is running.
     case playing

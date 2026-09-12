@@ -2,8 +2,10 @@
 //  WordEntryView.swift
 //  find_words
 //
-//  The host types the word here. Tapping Start Timer is what starts the clock —
-//  not typing — so the countdown never begins while they are still on the keyboard.
+//  The app's home screen. The host types a word here and taps Start Timer,
+//  which is what starts the clock — not typing — so the countdown never begins
+//  while they are still on the keyboard. The primary button sits directly under
+//  the text field, well clear of where the keyboard covers the lower screen.
 //
 
 import SwiftUI
@@ -13,18 +15,19 @@ struct WordEntryView: View {
     @FocusState private var isFieldFocused: Bool
 
     var body: some View {
-        VStack(spacing: 16) {
-            header
+        VStack(spacing: 14) {
+            titleBar
             privacyCard
             wordField
+            startButton
             surpriseButton
             Spacer(minLength: 0)
-            startButton
+            footer
         }
         .padding(PartyTheme.screenPadding)
         .task {
-            // Give the phase transition a beat to settle before grabbing focus:
-            // asking for it during the first layout can stall the whole render.
+            // Give the first layout a beat to settle before grabbing focus:
+            // asking for it during that pass can stall the whole render.
             try? await Task.sleep(nanoseconds: 400_000_000)
             isFieldFocused = true
         }
@@ -32,38 +35,49 @@ struct WordEntryView: View {
 
     // MARK: - Pieces
 
-    private var header: some View {
-        HStack(spacing: 8) {
-            RoundPill(text: "Word \(store.roundNumber) of \(store.totalWords)")
-            Spacer(minLength: 0)
-            ScorePill(count: store.correctCount)
+    private var titleBar: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Text("FIND WORDS")
+                    .font(PartyTheme.display(26))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                Spacer(minLength: 0)
+                ScorePill(count: store.correctCount)
+            }
+
+            HStack(spacing: 8) {
+                RoundPill(text: "Word \(store.roundNumber) of \(store.totalWords)")
+                Spacer(minLength: 0)
+            }
         }
     }
 
     private var privacyCard: some View {
         HStack(spacing: 10) {
             Text("👀")
-                .font(.system(size: 26))
+                .font(.system(size: 24))
             Text("Don't let anyone else see this screen")
-                .font(PartyTheme.strong(15))
+                .font(PartyTheme.strong(14))
                 .foregroundStyle(.white)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .background(
             Color.white.opacity(0.16),
-            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(.white.opacity(0.35), style: StrokeStyle(lineWidth: 2, dash: [7, 5]))
         )
     }
 
     private var wordField: some View {
-        VStack(spacing: 9) {
+        VStack(spacing: 8) {
             TextField("Your word", text: Binding(
                 get: { store.draftWord },
                 set: {
@@ -80,7 +94,7 @@ struct WordEntryView: View {
             .focused($isFieldFocused)
             .onSubmit { store.startTimer() }
             .padding(.horizontal, 18)
-            .padding(.vertical, 20)
+            .padding(.vertical, 18)
             .frame(maxWidth: .infinity)
             .background(
                 Color.white,
@@ -100,6 +114,19 @@ struct WordEntryView: View {
         .shadow(color: .black.opacity(0.18), radius: 14, y: 8)
     }
 
+    private var startButton: some View {
+        Button {
+            isFieldFocused = false
+            store.startTimer()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "play.fill")
+                Text("Start Timer")
+            }
+        }
+        .buttonStyle(PartyButtonStyle(kind: .primary, compact: true))
+    }
+
     private var surpriseButton: some View {
         Button {
             store.fillRandomWord()
@@ -112,18 +139,23 @@ struct WordEntryView: View {
         .buttonStyle(PartyButtonStyle(kind: .soft, compact: true))
     }
 
-    private var startButton: some View {
-        Button {
-            isFieldFocused = false
-            store.startTimer()
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "play.fill")
-                Text("Start Timer")
+    private var footer: some View {
+        VStack(spacing: 10) {
+            Text(store.configSummary)
+                .font(PartyTheme.regular(13))
+                .foregroundStyle(.white.opacity(0.78))
+
+            HStack(spacing: 10) {
+                Button("Settings") {
+                    store.phase = .settings
+                }
+                .buttonStyle(PartyButtonStyle(kind: .soft, compact: true))
+
+                Button("How to Play") {
+                    store.phase = .howToPlay
+                }
+                .buttonStyle(PartyButtonStyle(kind: .soft, compact: true))
             }
         }
-        .buttonStyle(PartyButtonStyle(kind: .primary))
-        .opacity(store.canStartRound ? 1 : 0.55)
-        .animation(.snappy(duration: 0.2), value: store.canStartRound)
     }
 }

@@ -13,7 +13,7 @@
 		FC0000000000000000000002 /* GameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000002 /* GameStore.swift */; };
 		FC0000000000000000000003 /* PartyTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000003 /* PartyTheme.swift */; };
 		FC0000000000000000000004 /* PartyComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000004 /* PartyComponents.swift */; };
-		FC0000000000000000000005 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000005 /* HomeView.swift */; };
+		FC0000000000000000000005 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000005 /* SettingsView.swift */; };
 		FC0000000000000000000006 /* HowToPlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000006 /* HowToPlayView.swift */; };
 		FC0000000000000000000007 /* TimedOutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000007 /* TimedOutView.swift */; };
 		FC0000000000000000000008 /* WordEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000008 /* WordEntryView.swift */; };
@@ -31,7 +31,7 @@
 		FB0000000000000000000002 /* GameStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameStore.swift; sourceTree = "<group>"; };
 		FB0000000000000000000003 /* PartyTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartyTheme.swift; sourceTree = "<group>"; };
 		FB0000000000000000000004 /* PartyComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartyComponents.swift; sourceTree = "<group>"; };
-		FB0000000000000000000005 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		FB0000000000000000000005 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		FB0000000000000000000006 /* HowToPlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HowToPlayView.swift; sourceTree = "<group>"; };
 		FB0000000000000000000007 /* TimedOutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimedOutView.swift; sourceTree = "<group>"; };
 		FB0000000000000000000008 /* WordEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordEntryView.swift; sourceTree = "<group>"; };
@@ -119,7 +119,7 @@
 		FD0000000000000000000004 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				FB0000000000000000000005 /* HomeView.swift */,
+				FB0000000000000000000005 /* SettingsView.swift */,
 				FB0000000000000000000006 /* HowToPlayView.swift */,
 				FB0000000000000000000007 /* TimedOutView.swift */,
 				FB0000000000000000000008 /* WordEntryView.swift */,
@@ -204,7 +204,7 @@
 				FC0000000000000000000002 /* GameStore.swift in Sources */,
 				FC0000000000000000000003 /* PartyTheme.swift in Sources */,
 				FC0000000000000000000004 /* PartyComponents.swift in Sources */,
-				FC0000000000000000000005 /* HomeView.swift in Sources */,
+				FC0000000000000000000005 /* SettingsView.swift in Sources */,
 				FC0000000000000000000006 /* HowToPlayView.swift in Sources */,
 				FC0000000000000000000007 /* TimedOutView.swift in Sources */,
 				FC0000000000000000000008 /* WordEntryView.swift in Sources */,

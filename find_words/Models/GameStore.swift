@@ -17,7 +17,7 @@ final class GameStore: ObservableObject {
 
     // MARK: - Navigation
 
-    @Published var phase: GamePhase = .home
+    @Published var phase: GamePhase = .wordEntry
 
     /// Set by "Settings" on the summary screen so the panel reopens on Home.
     @Published var homeShowsSettings = false
@@ -233,7 +233,7 @@ final class GameStore: ObservableObject {
         wordsPlayed = 0
         correctCount = 0
         endedEarly = false
-        phase = .home
+        phase = .wordEntry
     }
 
     // MARK: - Countdown
@@ -310,5 +310,14 @@ final class GameStore: ObservableObject {
         defaults.set(wordsIsCustom, forKey: Keys.wordsIsCustom)
         defaults.set(customDuration, forKey: Keys.customDuration)
         defaults.set(customWords, forKey: Keys.customWords)
+    }
+
+    // MARK: - TEMP verification hook (removed before shipping)
+    func applyDemoPhaseIfNeeded() {
+        guard let raw = ProcessInfo.processInfo.environment["FW_DEMO"] else { return }
+        switch raw {
+        case "wordEntry": startGame()
+        default: break
+        }
     }
 }

@@ -37,7 +37,7 @@ struct HowToPlayView: View {
         VStack(spacing: 16) {
             HStack {
                 RoundIconButton(systemName: "chevron.left") {
-                    store.phase = .home
+                    store.phase = .wordEntry
                 }
                 Spacer()
                 RoundPill(text: "How to Play")
@@ -83,7 +83,7 @@ struct HowToPlayView: View {
             .scrollBounceBehavior(.basedOnSize)
 
             Button("Got It") {
-                store.phase = .home
+                store.phase = .wordEntry
             }
             .buttonStyle(PartyButtonStyle(kind: .primary))
         }

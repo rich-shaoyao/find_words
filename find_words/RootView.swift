@@ -3,6 +3,8 @@
 //  find_words
 //
 //  Owns the game state and shows exactly one screen for the current phase.
+//  The entry screen doubles as the home screen, so a fresh launch can start
+//  a game straight away with whatever settings were last used.
 //
 
 import SwiftUI
@@ -15,9 +17,9 @@ struct RootView: View {
             PartyBackground()
 
             switch store.phase {
-            case .home:      HomeView()
-            case .howToPlay: HowToPlayView()
             case .wordEntry: WordEntryView()
+            case .settings:  SettingsView()
+            case .howToPlay: HowToPlayView()
             case .playing:   RoundPlayView()
             case .timedOut:  TimedOutView()
             case .summary:   SummaryView()
