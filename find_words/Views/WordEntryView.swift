@@ -22,7 +22,12 @@ struct WordEntryView: View {
             startButton
         }
         .padding(PartyTheme.screenPadding)
-        // TEMP DIAGNOSIS: autofocus disabled
+        .task {
+            // Give the phase transition a beat to settle before grabbing focus:
+            // asking for it during the first layout can stall the whole render.
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            isFieldFocused = true
+        }
     }
 
     // MARK: - Pieces
