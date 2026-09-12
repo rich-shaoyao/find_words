@@ -142,7 +142,7 @@ struct WordEntryView: View {
                     .font(PartyTheme.strong(14))
                     .foregroundStyle(PartyTheme.lemon)
             } else {
-                Text("e.g. Volcano · Mermaid · Jetpack")
+                Text("Type a word, then tap Start, or just press Return")
                     .font(PartyTheme.regular(13))
                     .foregroundStyle(.white.opacity(0.72))
             }
