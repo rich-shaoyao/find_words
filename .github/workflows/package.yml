@@ -70,10 +70,8 @@ jobs:
               -configuration "$CONFIG" \
               -destination 'generic/platform=iOS' \
               -archivePath build/find_words.xcarchive \
-              DEVELOPMENT_TEAM="$TEAM_ID" \
-              CODE_SIGN_STYLE=Manual \
-              CODE_SIGN_IDENTITY="Apple Distribution" \
-              PROVISIONING_PROFILE_SPECIFIER="$PROFILE_SPECIFIER" \
+              SIGNING_TEAM_ID="$TEAM_ID" \
+              SIGNING_PROFILE_NAME="$PROFILE_SPECIFIER" \
               -allowProvisioningUpdates
           else
             xcodebuild archive \
