@@ -61,7 +61,10 @@ jobs:
           TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
           PROFILE_SPECIFIER: ${{ secrets.PROVISIONING_PROFILE_SPECIFIER }}
         run: |
-          if [ -n "$CERT_P12" ]; then
+          # 签名仅限 Release：Debug 构建会注入 get-task-allow=true，App Store 描述文件
+          # 不接受该 entitlement，硬签会失败。Debug 保持未签名，作为渠道验证包。
+          # （与 QiGames 的 5438cf5 同一处理。）
+          if [ -n "$CERT_P12" ] && [ "$CONFIG" = "Release" ]; then
             xcodebuild archive \
               -workspace find_words.xcworkspace -scheme find_words \
               -configuration "$CONFIG" \
