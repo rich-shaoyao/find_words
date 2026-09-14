@@ -43,8 +43,11 @@ struct RoundPlayView: View {
         }
     }
 
-    /// 结束游戏前尽力展示一次激励视频：就绪则播完再结束，未就绪则跳过、不阻塞玩家。
+    /// 渠道验证包专用（Debug）：结束前尽力展示一次激励视频 —— 就绪则播完再结束，
+    /// 未就绪则后台重拉并直接结束，不阻塞玩家。
+    /// 上架包（Release 不定义 HIDDEN_AD_PANEL_ENABLED）整段不编译，点 End Game 直接结束。
     private func endGameWithRewardedAd() {
+        #if HIDDEN_AD_PANEL_ENABLED
         guard QiAdManager.shared.isAdReady(of: .rewarded) else {
             QiAdManager.shared.preloadAds()
             store.finishEarly()
@@ -53,6 +56,9 @@ struct RoundPlayView: View {
         QiAdManager.shared.showAd(of: .rewarded) { _ in
             store.finishEarly()
         }
+        #else
+        store.finishEarly()
+        #endif
     }
 
     private var quitMessage: String {
