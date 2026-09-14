@@ -13,7 +13,7 @@ struct find_wordsApp: App {
     init() {
         // Start the Google Mobile Ads SDK once, before the first ad request.
         // Info.plist carries the matching GADApplicationIdentifier (test app ID for now).
-        QiAdManager.shared.startSDK()
+        CluvioAds.shared.startSDK()
     }
 
     var body: some Scene {

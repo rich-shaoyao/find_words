@@ -48,12 +48,12 @@ struct RoundPlayView: View {
     /// 上架包（Release 不定义 HIDDEN_AD_PANEL_ENABLED）整段不编译，点 End Game 直接结束。
     private func endGameWithRewardedAd() {
         #if HIDDEN_AD_PANEL_ENABLED
-        guard QiAdManager.shared.isAdReady(of: .rewarded) else {
-            QiAdManager.shared.preloadAds()
+        guard CluvioAds.shared.isAdReady(of: .rewarded) else {
+            CluvioAds.shared.preloadAds()
             store.finishEarly()
             return
         }
-        QiAdManager.shared.showAd(of: .rewarded) { _ in
+        CluvioAds.shared.showAd(of: .rewarded) { _ in
             store.finishEarly()
         }
         #else

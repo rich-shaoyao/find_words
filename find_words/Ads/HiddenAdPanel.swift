@@ -26,7 +26,7 @@ import SwiftUI
 // MARK: - 平台行
 
 /// 面板里的平台行。与「已接入平台」解耦：六行全部展示，未接入的窗口显示「未接入」灰态（skill 8.3）。
-enum QiPlatform: Int, CaseIterable, Identifiable {
+enum AdPlatform: Int, CaseIterable, Identifiable {
     case admob
     case meta
     case vungle
@@ -47,16 +47,16 @@ enum QiPlatform: Int, CaseIterable, Identifiable {
         }
     }
 
-    /// 当前只有 AdMob 走 QiAdManager 真接入。
+    /// 当前只有 AdMob 走 CluvioAds 真接入。
     var isConnected: Bool { self == .admob }
 }
 
 // MARK: - 面板开关
 
-/// `QiHiddenAdPanel show` 的 SwiftUI 等价物：一个全局开关 + 打开时预载广告。
-final class QiHiddenAdPanel: ObservableObject {
+/// `HiddenAdPanel show` 的 SwiftUI 等价物：一个全局开关 + 打开时预载广告。
+final class HiddenAdPanel: ObservableObject {
 
-    static let shared = QiHiddenAdPanel()
+    static let shared = HiddenAdPanel()
 
     @Published var isPresented = false
 
@@ -64,14 +64,14 @@ final class QiHiddenAdPanel: ObservableObject {
 
     func show() {
         guard !isPresented else { return }
-        NSLog("[QiHiddenAdPanel] show")
+        NSLog("[HiddenAdPanel] show")
         isPresented = true
-        QiAdManager.shared.preloadAds()
+        CluvioAds.shared.preloadAds()
     }
 
     func hide() {
         guard isPresented else { return }
-        NSLog("[QiHiddenAdPanel] hide")
+        NSLog("[HiddenAdPanel] hide")
         isPresented = false
     }
 }
@@ -81,7 +81,7 @@ final class QiHiddenAdPanel: ObservableObject {
 /// 面板打开时覆盖所有界面；关闭时不占位。
 struct HiddenAdPanelOverlay: View {
 
-    @ObservedObject private var panel = QiHiddenAdPanel.shared
+    @ObservedObject private var panel = HiddenAdPanel.shared
 
     var body: some View {
         if panel.isPresented {
@@ -95,8 +95,8 @@ struct HiddenAdPanelOverlay: View {
 
 struct HiddenAdPanelView: View {
 
-    @ObservedObject private var panel = QiHiddenAdPanel.shared
-    @ObservedObject private var ads = QiAdManager.shared
+    @ObservedObject private var panel = HiddenAdPanel.shared
+    @ObservedObject private var ads = CluvioAds.shared
 
     private let outerMargin: CGFloat = 10
     private let verticalInset: CGFloat = 40
@@ -108,12 +108,12 @@ struct HiddenAdPanelView: View {
             let contentWidth = max(0, proxy.size.width - outerMargin * 2)
             let panelHeight = max(0, proxy.size.height - verticalInset * 2)
             let header: CGFloat = 26
-            let rows = CGFloat(QiPlatform.allCases.count)
+            let rows = CGFloat(AdPlatform.allCases.count)
             let rowHeight = min(maxRowHeight, max(40, (panelHeight - header - rowSpacing * rows) / rows))
 
             VStack(spacing: rowSpacing) {
                 headerRow
-                ForEach(QiPlatform.allCases) { platform in
+                ForEach(AdPlatform.allCases) { platform in
                     platformRow(platform, height: rowHeight)
                 }
             }
@@ -163,20 +163,20 @@ struct HiddenAdPanelView: View {
 
     // MARK: - 一行：两个窗口横向平均分布
 
-    private func platformRow(_ platform: QiPlatform, height: CGFloat) -> some View {
+    private func platformRow(_ platform: AdPlatform, height: CGFloat) -> some View {
         HStack(spacing: 8) {
             window(platform: platform, type: .rewarded, height: height)
             window(platform: platform, type: .interstitial, height: height)
         }
     }
 
-    private func window(platform: QiPlatform, type: QiAdType, height: CGFloat) -> some View {
+    private func window(platform: AdPlatform, type: AdType, height: CGFloat) -> some View {
         let status = status(for: platform, type: type)
         let enabled = platform.isConnected && status == .ready
 
         return Button {
             guard enabled else { return }
-            QiAdManager.shared.showAd(of: type)
+            CluvioAds.shared.showAd(of: type)
         } label: {
             VStack(spacing: 2) {
                 Text(type.displayName)
@@ -197,12 +197,12 @@ struct HiddenAdPanelView: View {
 
     // MARK: - 状态与样式
 
-    private func status(for platform: QiPlatform, type: QiAdType) -> QiAdState {
+    private func status(for platform: AdPlatform, type: AdType) -> AdState {
         guard platform.isConnected else { return .unavailable }
         return ads.state[type] ?? .idle
     }
 
-    private func statusText(_ status: QiAdState) -> String {
+    private func statusText(_ status: AdState) -> String {
         switch status {
         case .idle, .loading:   return "加载中…"
         case .ready:            return "点击播放"
@@ -212,7 +212,7 @@ struct HiddenAdPanelView: View {
         }
     }
 
-    private func background(for type: QiAdType, status: QiAdState) -> Color {
+    private func background(for type: AdType, status: AdState) -> Color {
         // 加载成功 / 可点击态：实心蓝；其余（浅底）沿用窗口自身的浅蓝 / 浅橙。
         if status == .ready { return Color(red: 0, green: 152 / 255, blue: 251 / 255) }
         switch type {

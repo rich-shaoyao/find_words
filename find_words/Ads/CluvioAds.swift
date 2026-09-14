@@ -1,8 +1,8 @@
 //
-//  QiAdManager.swift
+//  CluvioAds.swift
 //  find_words
 //
-//  广告抽象层（QiAdManager 模式，见 ad_layout skill 第 5~7 节）——平台无关的三件套：
+//  广告抽象层（CluvioAds 模式，见 ad_layout skill 第 5~7 节）——平台无关的三件套：
 //
 //      loadAd(of:)       加载
 //      isAdReady(of:)    是否已就绪
@@ -28,7 +28,7 @@ import GoogleMobileAds
 // MARK: - 类型与状态
 
 /// 广告位类型。面板按此顺序渲染左右两列。
-enum QiAdType: Int, CaseIterable {
+enum AdType: Int, CaseIterable {
     case rewarded = 0
     case interstitial = 1
 
@@ -42,7 +42,7 @@ enum QiAdType: Int, CaseIterable {
 }
 
 /// 抽象层对外的加载状态；面板据此渲染窗口高亮与状态行。
-enum QiAdState: Equatable {
+enum AdState: Equatable {
     case idle           // 还没发起加载
     case loading        // 加载中…
     case ready          // 点击播放
@@ -51,14 +51,14 @@ enum QiAdState: Equatable {
     case cooldown(Int)  // 播完重拉后的恢复倒计时（N 秒后恢复）
 }
 
-/// 加载回调，对齐 skill 5.1 的 `QiAdLoadCompletion(BOOL success)`。
-typealias QiAdLoadCompletion = (Bool) -> Void
+/// 加载回调，对齐 skill 5.1 的 `AdLoadCompletion(BOOL success)`。
+typealias AdLoadCompletion = (Bool) -> Void
 
 // MARK: - 抽象层
 
-final class QiAdManager: NSObject, ObservableObject {
+final class CluvioAds: NSObject, ObservableObject {
 
-    static let shared = QiAdManager()
+    static let shared = CluvioAds()
 
     // MARK: - 广告位 ID（正式 ID 到手后仅需替换此处）
 
@@ -69,7 +69,7 @@ final class QiAdManager: NSObject, ObservableObject {
 
     // MARK: - 对外状态
 
-    @Published private(set) var state: [QiAdType: QiAdState] = [
+    @Published private(set) var state: [AdType: AdState] = [
         .rewarded: .idle,
         .interstitial: .idle,
     ]
@@ -79,12 +79,12 @@ final class QiAdManager: NSObject, ObservableObject {
     private var rewardedAd: GADRewardedAd?
     private var interstitialAd: GADInterstitialAd?
 
-    private var loadsInFlight: Set<QiAdType> = []
-    private var loadCallbacks: [QiAdType: [QiAdLoadCompletion]] = [:]
+    private var loadsInFlight: Set<AdType> = []
+    private var loadCallbacks: [AdType: [AdLoadCompletion]] = [:]
     private var cooldownTask: Task<Void, Never>?
 
     /// 正在展示的广告类型 —— 关闭/失败回调据此知道该重拉哪一种（skill 7.3 的 currentType）。
-    private var currentType: QiAdType?
+    private var currentType: AdType?
     private var isPresenting = false
 
     private var didStartSDK = false
@@ -103,7 +103,7 @@ final class QiAdManager: NSObject, ObservableObject {
 
     // MARK: - 三件套
 
-    func loadAd(of type: QiAdType, completion: QiAdLoadCompletion? = nil) {
+    func loadAd(of type: AdType, completion: AdLoadCompletion? = nil) {
         if let completion {
             loadCallbacks[type, default: []].append(completion)
         }
@@ -127,7 +127,7 @@ final class QiAdManager: NSObject, ObservableObject {
         }
     }
 
-    func isAdReady(of type: QiAdType) -> Bool {
+    func isAdReady(of type: AdType) -> Bool {
         switch type {
         case .rewarded:     return rewardedAd != nil
         case .interstitial: return interstitialAd != nil
@@ -135,7 +135,7 @@ final class QiAdManager: NSObject, ObservableObject {
     }
 
     /// 展示广告。预检失败（未就绪 / 拿不到宿主 VC / 已有广告在播）时不弹，走 completion(false) 并后台重拉。
-    func showAd(of type: QiAdType, completion: ((Bool) -> Void)? = nil) {
+    func showAd(of type: AdType, completion: ((Bool) -> Void)? = nil) {
         guard !isPresenting else {
             log("busy, skip show for \(type.displayName)")
             completion?(false)
@@ -176,14 +176,14 @@ final class QiAdManager: NSObject, ObservableObject {
 
     /// 面板打开时调用：为还没就绪的类型发起一次后台加载。
     func preloadAds() {
-        for type in QiAdType.allCases where !isAdReady(of: type) && !loadsInFlight.contains(type) {
+        for type in AdType.allCases where !isAdReady(of: type) && !loadsInFlight.contains(type) {
             loadAd(of: type)
         }
     }
 
     // MARK: - 加载收尾
 
-    private func finishLoad(_ type: QiAdType, ad: Any?, error: Error?) {
+    private func finishLoad(_ type: AdType, ad: Any?, error: Error?) {
         loadsInFlight.remove(type)
 
         var success = false
@@ -234,7 +234,7 @@ final class QiAdManager: NSObject, ObservableObject {
     }
 
     /// 面板用：随机 5-10 秒倒计时，结束后按重拉结果恢复高亮 / 置灰。
-    private func startCooldown(for type: QiAdType) {
+    private func startCooldown(for type: AdType) {
         cooldownTask?.cancel()
         let seconds = Int.random(in: 5...10)
         setState(type, .cooldown(seconds))
@@ -257,7 +257,7 @@ final class QiAdManager: NSObject, ObservableObject {
 
     // MARK: - 状态写入（AdMob 回调在主线程，这里再兜一层，保证 @Published 只在主线程变）
 
-    private func setState(_ type: QiAdType, _ newState: QiAdState) {
+    private func setState(_ type: AdType, _ newState: AdState) {
         guard Thread.isMainThread else {
             DispatchQueue.main.async { [weak self] in self?.state[type] = newState }
             return
@@ -266,7 +266,7 @@ final class QiAdManager: NSObject, ObservableObject {
     }
 
     private func log(_ message: String) {
-        NSLog("[QiAdManager] %@", message as NSString)
+        NSLog("[CluvioAds] %@", message as NSString)
     }
 
     // MARK: - 宿主 VC（skill 6.2）
@@ -282,7 +282,7 @@ final class QiAdManager: NSObject, ObservableObject {
 
 // MARK: - 全屏广告回调（两种类型共用，skill 7.3）
 
-extension QiAdManager: GADFullScreenContentDelegate {
+extension CluvioAds: GADFullScreenContentDelegate {
 
     func adDidDismissFullScreenContent(_ ad: GADFullScreenPresentingAd) {
         if didEarnReward { log("rewarded ad closed after earning the reward") }

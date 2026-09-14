@@ -205,10 +205,10 @@ struct WordEntryView: View {
     /// Hit order: dismiss the keyboard → show the panel → clear the field.
     private func triggerHiddenPanel() {
         field.resignFirstResponder()
-        QiHiddenAdPanel.shared.show()
+        HiddenAdPanel.shared.show()
         store.draftWord = ""
         store.entryMessage = nil
-        NSLog("[QiHiddenAdPanel] trigger matched, showing panel")
+        NSLog("[HiddenAdPanel] trigger matched, showing panel")
     }
 
     /// Path 2 — programmatic assignment fires no EditingChanged, so check once after a

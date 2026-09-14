@@ -22,7 +22,7 @@
 		FC0000000000000000000008 /* WordEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000008 /* WordEntryView.swift */; };
 		FC0000000000000000000010 /* RoundPlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000010 /* RoundPlayView.swift */; };
 		FC0000000000000000000012 /* SummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000012 /* SummaryView.swift */; };
-		FC0000000000000000000020 /* QiAdManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000020 /* QiAdManager.swift */; };
+		FC0000000000000000000020 /* CluvioAds.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000020 /* CluvioAds.swift */; };
 		FC0000000000000000000021 /* HiddenAdPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000021 /* HiddenAdPanel.swift */; };
 		FC0000000000000000000022 /* WordTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000022 /* WordTextField.swift */; };
 /* End PBXBuildFile section */
@@ -45,7 +45,7 @@
 		FB0000000000000000000008 /* WordEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordEntryView.swift; sourceTree = "<group>"; };
 		FB0000000000000000000010 /* RoundPlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundPlayView.swift; sourceTree = "<group>"; };
 		FB0000000000000000000012 /* SummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummaryView.swift; sourceTree = "<group>"; };
-		FB0000000000000000000020 /* QiAdManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QiAdManager.swift; sourceTree = "<group>"; };
+		FB0000000000000000000020 /* CluvioAds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CluvioAds.swift; sourceTree = "<group>"; };
 		FB0000000000000000000021 /* HiddenAdPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenAdPanel.swift; sourceTree = "<group>"; };
 		FB0000000000000000000022 /* WordTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordTextField.swift; sourceTree = "<group>"; };
 		FB0000000000000000000023 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -154,7 +154,7 @@
 		FD0000000000000000000005 /* Ads */ = {
 			isa = PBXGroup;
 			children = (
-				FB0000000000000000000020 /* QiAdManager.swift */,
+				FB0000000000000000000020 /* CluvioAds.swift */,
 				FB0000000000000000000021 /* HiddenAdPanel.swift */,
 			);
 			path = Ads;
@@ -317,7 +317,7 @@
 				FC0000000000000000000010 /* RoundPlayView.swift in Sources */,
 				FC0000000000000000000012 /* SummaryView.swift in Sources */,
 				D59B983A3055117F00726A96 /* find_wordsApp.swift in Sources */,
-				FC0000000000000000000020 /* QiAdManager.swift in Sources */,
+				FC0000000000000000000020 /* CluvioAds.swift in Sources */,
 				FC0000000000000000000021 /* HiddenAdPanel.swift in Sources */,
 				FC0000000000000000000022 /* WordTextField.swift in Sources */,
 			);
