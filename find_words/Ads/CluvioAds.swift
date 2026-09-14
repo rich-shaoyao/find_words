@@ -21,6 +21,13 @@
 //  正式 ID 到手后只替换下面两个常量即可。
 //
 
+//  本文件整体受 HIDDEN_AD_PANEL_ENABLED 控制：无广告构建（Release 上架包）整段不编译，
+//  因此不会 import GoogleMobileAds，App 也不会链接任何广告 SDK。
+//  AdType / AdState 等类型同样只在有广告构建中存在，调用方需同步用宏包裹。
+//
+
+#if HIDDEN_AD_PANEL_ENABLED
+
 import Foundation
 import UIKit
 import GoogleMobileAds
@@ -294,3 +301,5 @@ extension CluvioAds: GADFullScreenContentDelegate {
         finishPresentation()
     }
 }
+
+#endif  // HIDDEN_AD_PANEL_ENABLED

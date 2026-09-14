@@ -21,16 +21,20 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 
-	<!-- Google Mobile Ads (AdMob). Test app ID during development — it must match the
-	     test ad unit IDs in QiAdManager.swift. Replace both with production values before
-	     shipping. Missing this key makes the SDK throw on first ad request. -->
+	<!-- ── 广告相关键：仅「有广告」构建包含 ────────────────────────────────
+	     本文件走 INFOPLIST_PREPROCESS 预处理：有广告构建传入
+	     INFOPLIST_PREPROCESSOR_DEFINITIONS=HIDDEN_AD_PANEL_ENABLED=1，
+	     上架无广告构建不传该定义，下面整块不会出现在最终 Info.plist 中。
+	     注意：走 C 预处理器时 URL 的双斜杠会被当作行注释，故此处不写 URL。 -->
+#if HIDDEN_AD_PANEL_ENABLED
+	<!-- Google Mobile Ads (AdMob) 测试 App ID，须与 CluvioAds.swift 里的测试广告位搭配。
+	     正式 ID 到手后替换此处与 CluvioAds.swift 顶部两个常量。 -->
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-3940256099942544~1458002511</string>
 
-	<!-- SKAdNetwork identifiers published by Google for AdMob buyers (Google's own
-	     cstr6suwn9.skadnetwork first). Google maintains this list and updates it over time:
-	     re-copy from https://developers.google.com/admob/ios/privacy/strategies when bumping
-	     the SDK or before a release. -->
+	<!-- Google 为 AdMob 买方发布的 SKAdNetwork 标识符列表（Google 自家的
+	     cstr6suwn9.skadnetwork 排第一）。Google 会持续更新该列表：升 SDK 或发版前
+	     到 AdMob 官方隐私策略文档重新抄一份。 -->
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>
@@ -234,6 +238,7 @@
 			<string>ydx93a7ass.skadnetwork</string>
 		</dict>
 	</array>
+#endif  /* HIDDEN_AD_PANEL_ENABLED */
 
 	<key>LSRequiresIPhoneOS</key>
 	<true/>

@@ -1,16 +1,19 @@
-name: CI Package (pre-release verification)
+name: CI Package (4 variants)
 
-# Cloud build for a project whose local Xcode is too old to link the current ad SDKs
-# (Google-Mobile-Ads-SDK 11.7.0 pulls iOS 18 SDK symbols such as MarketplaceKit).
-# macos-latest ships a new enough Xcode, so the archive links fine here.
+# 云打包：本机 Xcode 15.2 无法链接 Google-Mobile-Ads-SDK 11.7.0（需要 iOS 18 SDK 符号，
+# 如 MarketplaceKit），macos-latest 的 Xcode 足够新，能正常 archive。
 #
-# Two configurations are archived:
-#   Debug   — carries the hidden ad panel (HIDDEN_AD_PANEL_ENABLED is Debug-only), so the
-#             panel + AdMob load/show/reload chain can be verified on a device.
-#   Release — the shipping shape (panel compiled out).
+# 产出 4 个变体（广告层 × configuration）：
 #
-# Signing is optional: with no DIST_CERT_P12 secret the archive is built unsigned
-# (CODE_SIGNING_ALLOWED=NO) and the ipa needs re-signing locally before installing.
+#   Debug   + 广告    6 家 SDK + 隐藏面板(show**show**show) + 激励视频  → 未签名，本地用 Ad Hoc 重签装 iPhone 17
+#   Release + 广告    同上，但面板宏存在而 DEBUG 不存在                  → App Store 签名，可直接上传审核
+#   Debug   + 无广告  零广告 SDK、无面板、无激励视频                     → 未签名，本地用 Ad Hoc 重签装 iPhone 17
+#   Release + 无广告  同上                                             → App Store 签名，可直接上传审核
+#
+# 广告层不是靠编译宏切换就够的：6 家 SDK 由 CocoaPods 链接，宏只能关掉源码、
+# 关不掉 framework。所以无广告变体用 CLUVIO_NO_ADS=1 pod install 换一整套依赖树。
+#
+# 签名可选：未配置 DIST_CERT_P12 时一律未签名构建（CODE_SIGNING_ALLOWED=NO）。
 
 on:
   workflow_dispatch:
@@ -23,24 +26,55 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        configuration: [ Debug, Release ]
+        include:
+          - label: Debug-Ads
+            configuration: Debug
+            ads: "1"
+          - label: Release-Ads
+            configuration: Release
+            ads: "1"
+          - label: Debug-NoAds
+            configuration: Debug
+            ads: "0"
+          - label: Release-NoAds
+            configuration: Release
+            ads: "0"
     env:
       # NOTE: `if:` cannot reference the secrets context directly (invalid workflow),
       # so the flag is computed here and consumed through env.
       HAS_CERT: ${{ secrets.DIST_CERT_P12 != '' }}
       CONFIG: ${{ matrix.configuration }}
+      ADS: ${{ matrix.ads }}
+      LABEL: ${{ matrix.label }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install CocoaPods dependencies
+      - name: Install CocoaPods dependencies (${{ matrix.ads == '1' && 'with ads' || 'no ads' }})
         run: |
           export LANG=en_US.UTF-8
           if ! command -v pod >/dev/null 2>&1; then
             sudo gem install cocoapods
           fi
-          pod install
-          # The workspace is what gets built from here on (CocoaPods integration).
+          if [ "$ADS" = "1" ]; then
+            pod install
+          else
+            CLUVIO_NO_ADS=1 pod install
+          fi
           test -d find_words.xcworkspace
+          echo "--- Podfile.lock ---"
+          cat Podfile.lock
+
+      - name: Assert dependency tree matches the variant
+        run: |
+          # 无广告变体必须真的一个广告 pod 都没有，否则说明 Podfile 开关失效。
+          n=$(grep -cE "Google-Mobile-Ads-SDK|FBAudienceNetwork|VungleSDK|ChartboostSDK|InMobiSDK|UnityAds" Podfile.lock || true)
+          if [ "$ADS" = "1" ] && [ "$n" -lt 6 ]; then
+            echo "::error::广告变体应含 6 个广告 pod，实际匹配 $n"; exit 1
+          fi
+          if [ "$ADS" = "0" ] && [ "$n" -ne 0 ]; then
+            echo "::error::无广告变体不应含广告 pod，实际匹配 $n"; exit 1
+          fi
+          echo "依赖树与变体一致（匹配 $n 个广告 pod 名）"
 
       - name: Import distribution certificate
         if: env.HAS_CERT == 'true'
@@ -55,21 +89,34 @@ jobs:
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
           echo "${{ secrets.PROVISIONING_PROFILE }}" | base64 -d > "$HOME/Library/MobileDevice/Provisioning Profiles/find_words.mobileprovision"
 
-      - name: Archive (unsigned by default; signed when cert secrets are configured)
+      - name: Archive (${{ matrix.label }})
         env:
           CERT_P12: ${{ secrets.DIST_CERT_P12 }}
           TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
           PROFILE_SPECIFIER: ${{ secrets.PROVISIONING_PROFILE_SPECIFIER }}
         run: |
-          # 签名仅限 Release：Debug 构建会注入 get-task-allow=true，App Store 描述文件
-          # 不接受该 entitlement，硬签会失败。Debug 保持未签名，作为渠道验证包。
-          # （与 QiGames 的 5438cf5 同一处理。）
+          # 编译宏 / Info.plist 预处理定义按变体注入，命令行值覆盖 pbxproj 里的默认。
+          if [ "$ADS" = "1" ]; then
+            SWIFT_CONDITIONS="HIDDEN_AD_PANEL_ENABLED"
+            PLIST_DEFS="HIDDEN_AD_PANEL_ENABLED=1"
+          else
+            SWIFT_CONDITIONS="NO_ADS_BUILD"
+            PLIST_DEFS=""
+          fi
+          if [ "$CONFIG" = "Debug" ]; then
+            SWIFT_CONDITIONS="DEBUG $SWIFT_CONDITIONS"
+          fi
+
+          # 签名仅限 Release：Debug 会注入 get-task-allow=true，App Store 描述文件
+          # 不接受该 entitlement，硬签会失败。Debug 保持未签名，本地用 Ad Hoc 重签。
           if [ -n "$CERT_P12" ] && [ "$CONFIG" = "Release" ]; then
             xcodebuild archive \
               -workspace find_words.xcworkspace -scheme find_words \
               -configuration "$CONFIG" \
               -destination 'generic/platform=iOS' \
               -archivePath build/find_words.xcarchive \
+              SWIFT_ACTIVE_COMPILATION_CONDITIONS="$SWIFT_CONDITIONS" \
+              INFOPLIST_PREPROCESSOR_DEFINITIONS="$PLIST_DEFS" \
               SIGNING_TEAM_ID="$TEAM_ID" \
               SIGNING_PROFILE_NAME="$PROFILE_SPECIFIER" \
               -allowProvisioningUpdates
@@ -79,6 +126,8 @@ jobs:
               -configuration "$CONFIG" \
               -destination 'generic/platform=iOS' \
               -archivePath build/find_words.xcarchive \
+              SWIFT_ACTIVE_COMPILATION_CONDITIONS="$SWIFT_CONDITIONS" \
+              INFOPLIST_PREPROCESSOR_DEFINITIONS="$PLIST_DEFS" \
               CODE_SIGNING_ALLOWED=NO
           fi
 
@@ -86,17 +135,45 @@ jobs:
         run: |
           mkdir -p Payload
           cp -R build/find_words.xcarchive/Products/Applications/find_words.app Payload/
-          zip -q -r -y "find_words-${CONFIG}.ipa" Payload/
+          zip -q -r -y "find_words-cluvio-${LABEL}.ipa" Payload/
 
-      - name: Verify bundle
+      - name: Verify bundle matches the variant
         run: |
-          unzip -t "find_words-${CONFIG}.ipa" > /dev/null && echo "ipa zip OK"
-          file Payload/find_words.app/find_words
-          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" Payload/find_words.app/Info.plist
-          /usr/libexec/PlistBuddy -c "Print :GADApplicationIdentifier" Payload/find_words.app/Info.plist
-          /usr/libexec/PlistBuddy -c "Print :SKAdNetworkItems:0:SKAdNetworkIdentifier" Payload/find_words.app/Info.plist
+          IPA="find_words-cluvio-${LABEL}.ipa"
+          unzip -t "$IPA" > /dev/null && echo "ipa zip OK"
+          APP=Payload/find_words.app
+          file "$APP/find_words"
+          echo "--- Info.plist ---"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP/Info.plist"
+
+          plist_has() { /usr/libexec/PlistBuddy -c "Print :$1" "$APP/Info.plist" >/dev/null 2>&1; }
+          symbols() { strings "$APP/find_words" | grep -c "$1" || true; }
+
+          if [ "$ADS" = "1" ]; then
+            plist_has GADApplicationIdentifier || { echo "::error::广告变体缺 GADApplicationIdentifier"; exit 1; }
+            plist_has SKAdNetworkItems || { echo "::error::广告变体缺 SKAdNetworkItems"; exit 1; }
+            /usr/libexec/PlistBuddy -c "Print :GADApplicationIdentifier" "$APP/Info.plist"
+            echo "SKAdNetworkItems 条数: $(/usr/libexec/PlistBuddy -c 'Print :SKAdNetworkItems' "$APP/Info.plist" | grep -c skadnetwork)"
+          else
+            plist_has GADApplicationIdentifier && { echo "::error::无广告变体不应含 GADApplicationIdentifier"; exit 1; }
+            plist_has SKAdNetworkItems && { echo "::error::无广告变体不应含 SKAdNetworkItems"; exit 1; }
+            echo "Info.plist 无广告键 OK"
+            for s in GADMobileAds FBAudienceNetwork VungleSDK Chartboost InMobiSDK UnityAds CluvioAds HiddenAdPanel; do
+              c=$(symbols "$s")
+              printf "  %-20s %s 处\n" "$s" "$c"
+              if [ "$c" -ne 0 ]; then echo "::error::无广告变体二进制残留 '$s'"; exit 1; fi
+            done
+            echo "二进制零广告痕迹 OK"
+          fi
+
+          # 面板触发串只应出现在广告变体里
+          t=$(strings "$APP/find_words" | grep -c 'show\*\*show\*\*show' || true)
+          echo "隐藏面板触发串: $t 处（Debug-Ads/Release-Ads 应 > 0，NoAds 应为 0）"
+          if [ "$ADS" = "0" ] && [ "$t" -ne 0 ]; then echo "::error::无广告变体残留触发串"; exit 1; fi
 
       - uses: actions/upload-artifact@v4
         with:
-          name: find_words-ipa-${{ matrix.configuration }}
-          path: find_words-${{ matrix.configuration }}.ipa
+          name: find_words-ipa-${{ matrix.label }}
+          path: find_words-cluvio-${{ matrix.label }}.ipa

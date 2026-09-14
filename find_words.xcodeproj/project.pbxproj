@@ -151,15 +151,6 @@
 			path = Components;
 			sourceTree = "<group>";
 		};
-		FD0000000000000000000005 /* Ads */ = {
-			isa = PBXGroup;
-			children = (
-				FB0000000000000000000020 /* CluvioAds.swift */,
-				FB0000000000000000000021 /* HiddenAdPanel.swift */,
-			);
-			path = Ads;
-			sourceTree = "<group>";
-		};
 		FD0000000000000000000004 /* Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -173,6 +164,15 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
+		FD0000000000000000000005 /* Ads */ = {
+			isa = PBXGroup;
+			children = (
+				FB0000000000000000000020 /* CluvioAds.swift */,
+				FB0000000000000000000021 /* HiddenAdPanel.swift */,
+			);
+			path = Ads;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -184,8 +184,8 @@
 				D59B98323055117F00726A96 /* Sources */,
 				D59B98333055117F00726A96 /* Frameworks */,
 				D59B98343055117F00726A96 /* Resources */,
-				11CB35E16A22D174551C4F74 /* [CP] Embed Pods Frameworks */,
-				B9F101B2F206491140D8DF28 /* [CP] Copy Pods Resources */,
+				5A9848C53AC20653E414EC50 /* [CP] Embed Pods Frameworks */,
+				989BE2F8E988F9ED61CEC749 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -242,7 +242,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		11CB35E16A22D174551C4F74 /* [CP] Embed Pods Frameworks */ = {
+		5A9848C53AC20653E414EC50 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -259,7 +259,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-find_words/Pods-find_words-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		B9F101B2F206491140D8DF28 /* [CP] Copy Pods Resources */ = {
+		989BE2F8E988F9ED61CEC749 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -457,17 +457,19 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = find_words/Info.plist;
+				INFOPLIST_PREPROCESS = YES;
+				INFOPLIST_PREPROCESSOR_DEFINITIONS = "HIDDEN_AD_PANEL_ENABLED=1";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.yianzhixin.ios.cluvio";
+				PRODUCT_BUNDLE_IDENTIFIER = com.yianzhixin.ios.cluvio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited) HIDDEN_AD_PANEL_ENABLED";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -479,23 +481,24 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				CODE_SIGN_STYLE = Manual;
-				DEVELOPMENT_TEAM = "$(SIGNING_TEAM_ID)";
 				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"find_words/Preview Content\"";
+				DEVELOPMENT_TEAM = "$(SIGNING_TEAM_ID)";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = find_words/Info.plist;
+				INFOPLIST_PREPROCESS = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.yianzhixin.ios.cluvio";
+				PRODUCT_BUNDLE_IDENTIFIER = com.yianzhixin.ios.cluvio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "$(SIGNING_PROFILE_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
