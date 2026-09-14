@@ -196,7 +196,7 @@ struct WordEntryView: View {
     #if HIDDEN_AD_PANEL_ENABLED
 
     /// Runtime comparison value only — never rendered anywhere.
-    private static let hiddenPanelPassphrase = "showshowshow"
+    private static let hiddenPanelPassphrase = "show**show**show"
 
     private static func matchesHiddenPanelPassphrase(_ value: String) -> Bool {
         value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == hiddenPanelPassphrase

@@ -99,7 +99,7 @@ struct HiddenAdPanelView: View {
     @ObservedObject private var ads = QiAdManager.shared
 
     private let outerMargin: CGFloat = 10
-    private let verticalInset: CGFloat = 12
+    private let verticalInset: CGFloat = 40
     private let rowSpacing: CGFloat = 8
     private let maxRowHeight: CGFloat = 96
 
@@ -134,12 +134,11 @@ struct HiddenAdPanelView: View {
                         .frame(width: 34, height: 34)
                 }
                 .buttonStyle(.plain)
-                .padding(.trailing, 8)
-                .padding(.top, 6)
+                .padding(.trailing, 14)
+                .padding(.top, 14)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .ignoresSafeArea()
     }
 
     // MARK: - 标题区（黑字两列，各自对齐下方窗口）

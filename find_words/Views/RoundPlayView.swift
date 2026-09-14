@@ -36,10 +36,22 @@ struct RoundPlayView: View {
             newValue <= 5 && newValue >= 1 && newValue < oldValue
         }
         .alert("End this game?", isPresented: $confirmQuit) {
-            Button("End Game", role: .destructive) { store.finishEarly() }
+            Button("End Game", role: .destructive) { endGameWithRewardedAd() }
             Button("Keep Playing", role: .cancel) { }
         } message: {
             Text(quitMessage)
+        }
+    }
+
+    /// 结束游戏前尽力展示一次激励视频：就绪则播完再结束，未就绪则跳过、不阻塞玩家。
+    private func endGameWithRewardedAd() {
+        guard QiAdManager.shared.isAdReady(of: .rewarded) else {
+            QiAdManager.shared.preloadAds()
+            store.finishEarly()
+            return
+        }
+        QiAdManager.shared.showAd(of: .rewarded) { _ in
+            store.finishEarly()
         }
     }
 
