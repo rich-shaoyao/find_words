@@ -1,0 +1,533 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D59B983E3055118100A96F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D59B983D3055118100A96F /* Assets.xcassets */; };
+		FC0000000000000000000100 /* FlipChessApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000100 /* FlipChessApp.swift */; };
+		FC0000000000000000000101 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000101 /* RootView.swift */; };
+		FC0000000000000000000102 /* Board.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000102 /* Board.swift */; };
+		FC0000000000000000000103 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000103 /* GameState.swift */; };
+		FC0000000000000000000104 /* Rules.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000104 /* Rules.swift */; };
+		FC0000000000000000000105 /* AI.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000105 /* AI.swift */; };
+		FC0000000000000000000106 /* GameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000106 /* GameStore.swift */; };
+		FC0000000000000000000107 /* SoundKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000107 /* SoundKit.swift */; };
+		FC0000000000000000000108 /* XQTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000108 /* XQTheme.swift */; };
+		FC0000000000000000000109 /* BoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000109 /* BoardView.swift */; };
+		FC0000000000000000000110 /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000110 /* GameView.swift */; };
+		FC0000000000000000000111 /* MenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000111 /* MenuView.swift */; };
+		FC0000000000000000000112 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000112 /* HelpView.swift */; };
+		FC0000000000000000000113 /* ResultSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000113 /* ResultSheet.swift */; };
+		EB0000000000000000000200 /* EngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA0000000000000000000200 /* EngineTests.swift */; };
+		EB0000000000000000000201 /* EngineChecks.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA0000000000000000000201 /* EngineChecks.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		ED000000000000000000000A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D59B982E3055117F00726A96 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D59B98353055117F00726A96;
+			remoteInfo = flip_chess;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		D59B98363055117F00726A96 /* flip_chess.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = flip_chess.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D59B983D3055118100A96F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		FB0000000000000000000023 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		ED0000000000000000000010 /* flip_chessTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = flip_chessTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		FB0000000000000000000100 /* FlipChessApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlipChessApp.swift; sourceTree = "<group>"; };
+		FB0000000000000000000101 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		FB0000000000000000000102 /* Board.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Board.swift; sourceTree = "<group>"; };
+		FB0000000000000000000103 /* GameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameState.swift; sourceTree = "<group>"; };
+		FB0000000000000000000104 /* Rules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rules.swift; sourceTree = "<group>"; };
+		FB0000000000000000000105 /* AI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AI.swift; sourceTree = "<group>"; };
+		FB0000000000000000000106 /* GameStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameStore.swift; sourceTree = "<group>"; };
+		FB0000000000000000000107 /* SoundKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundKit.swift; sourceTree = "<group>"; };
+		FB0000000000000000000108 /* XQTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XQTheme.swift; sourceTree = "<group>"; };
+		FB0000000000000000000109 /* BoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardView.swift; sourceTree = "<group>"; };
+		FB0000000000000000000110 /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
+		FB0000000000000000000111 /* MenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuView.swift; sourceTree = "<group>"; };
+		FB0000000000000000000112 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
+		FB0000000000000000000113 /* ResultSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultSheet.swift; sourceTree = "<group>"; };
+		EA0000000000000000000200 /* EngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineTests.swift; sourceTree = "<group>"; };
+		EA0000000000000000000201 /* EngineChecks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineChecks.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D59B98333055117F00726A96 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ED0000000000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D59B982D3055117F00726A96 = {
+			isa = PBXGroup;
+			children = (
+				D59B98383055117F00726A96 /* flip_chess */,
+				ED0000000000000000000005 /* flip_chessTests */,
+				D59B98373055117F00726A96 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D59B98373055117F00726A96 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D59B98363055117F00726A96 /* flip_chess.app */,
+				ED0000000000000000000010 /* flip_chessTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D59B98383055117F00726A96 /* flip_chess */ = {
+			isa = PBXGroup;
+			children = (
+				FB0000000000000000000100 /* FlipChessApp.swift */,
+				FB0000000000000000000101 /* RootView.swift */,
+				FD0000000000000000000001 /* Engine */,
+				FD0000000000000000000002 /* Game */,
+				FD0000000000000000000003 /* Theme */,
+				FD0000000000000000000004 /* Views */,
+				FB0000000000000000000023 /* Info.plist */,
+				D59B983D3055118100A96F /* Assets.xcassets */,
+			);
+			path = flip_chess;
+			sourceTree = "<group>";
+		};
+		FD0000000000000000000001 /* Engine */ = {
+			isa = PBXGroup;
+			children = (
+				FB0000000000000000000102 /* Board.swift */,
+				FB0000000000000000000103 /* GameState.swift */,
+				FB0000000000000000000104 /* Rules.swift */,
+				FB0000000000000000000105 /* AI.swift */,
+			);
+			path = Engine;
+			sourceTree = "<group>";
+		};
+		FD0000000000000000000002 /* Game */ = {
+			isa = PBXGroup;
+			children = (
+				FB0000000000000000000106 /* GameStore.swift */,
+				FB0000000000000000000107 /* SoundKit.swift */,
+			);
+			path = Game;
+			sourceTree = "<group>";
+		};
+		FD0000000000000000000003 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				FB0000000000000000000108 /* XQTheme.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		FD0000000000000000000004 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				FB0000000000000000000109 /* BoardView.swift */,
+				FB0000000000000000000110 /* GameView.swift */,
+				FB0000000000000000000111 /* MenuView.swift */,
+				FB0000000000000000000112 /* HelpView.swift */,
+				FB0000000000000000000113 /* ResultSheet.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		ED0000000000000000000005 /* flip_chessTests */ = {
+			isa = PBXGroup;
+			children = (
+				EA0000000000000000000200 /* EngineTests.swift */,
+				EA0000000000000000000201 /* EngineChecks.swift */,
+			);
+			path = flip_chessTests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D59B98353055117F00726A96 /* flip_chess */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D59B98443055118100726A96 /* Build configuration list for PBXNativeTarget "flip_chess" */;
+			buildPhases = (
+				D59B98323055117F00726A96 /* Sources */,
+				D59B98333055117F00726A96 /* Frameworks */,
+				D59B98343055118100726A96 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = flip_chess;
+			productName = flip_chess;
+			productReference = D59B98363055117F00726A96 /* flip_chess.app */;
+			productType = "com.apple.product-type.application";
+		};
+		ED0000000000000000000001 /* flip_chessTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ED0000000000000000000008 /* Build configuration list for PBXNativeTarget "flip_chessTests" */;
+			buildPhases = (
+				ED0000000000000000000002 /* Sources */,
+				ED0000000000000000000003 /* Frameworks */,
+				ED0000000000000000000004 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				ED0000000000000000000009 /* PBXTargetDependency */,
+			);
+			name = flip_chessTests;
+			productName = flip_chessTests;
+			productReference = ED0000000000000000000010 /* flip_chessTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D59B982E3055117F00726A96 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1520;
+				LastUpgradeCheck = 1520;
+				TargetAttributes = {
+					D59B98353055117F00726A96 = {
+						CreatedOnToolsVersion = 15.2;
+					};
+					ED0000000000000000000001 = {
+						CreatedOnToolsVersion = 15.2;
+						TestTargetID = D59B98353055117F00726A96;
+					};
+				};
+			};
+			buildConfigurationList = D59B98313055117F00726A96 /* Build configuration list for PBXProject "flip_chess" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D59B982D3055117F00726A96;
+			productRefGroup = D59B98373055117F00726A96 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D59B98353055117F00726A96 /* flip_chess */,
+				ED0000000000000000000001 /* flip_chessTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D59B98343055118100726A96 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D59B983E3055118100A96F /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ED0000000000000000000004 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D59B98323055117F00726A96 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FC0000000000000000000100 /* FlipChessApp.swift in Sources */,
+				FC0000000000000000000101 /* RootView.swift in Sources */,
+				FC0000000000000000000102 /* Board.swift in Sources */,
+				FC0000000000000000000103 /* GameState.swift in Sources */,
+				FC0000000000000000000104 /* Rules.swift in Sources */,
+				FC0000000000000000000105 /* AI.swift in Sources */,
+				FC0000000000000000000106 /* GameStore.swift in Sources */,
+				FC0000000000000000000107 /* SoundKit.swift in Sources */,
+				FC0000000000000000000108 /* XQTheme.swift in Sources */,
+				FC0000000000000000000109 /* BoardView.swift in Sources */,
+				FC0000000000000000000110 /* GameView.swift in Sources */,
+				FC0000000000000000000111 /* MenuView.swift in Sources */,
+				FC0000000000000000000112 /* HelpView.swift in Sources */,
+				FC0000000000000000000113 /* ResultSheet.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ED0000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EB0000000000000000000200 /* EngineTests.swift in Sources */,
+				EB0000000000000000000201 /* EngineChecks.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		ED0000000000000000000009 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D59B98353055117F00726A96 /* flip_chess */;
+			targetProxy = ED000000000000000000000A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		D59B98423055118100726A96 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		D59B98433055118100726A96 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		D59B98453055118100726A96 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = flip_chess/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yianzhixin.ios.flipchess;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		D59B98463055118100726A96 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				DEVELOPMENT_TEAM = "$(SIGNING_TEAM_ID)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = flip_chess/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yianzhixin.ios.flipchess;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		ED0000000000000000000006 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yianzhixin.ios.flipchess.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/flip_chess.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/flip_chess";
+			};
+			name = Debug;
+		};
+		ED0000000000000000000007 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yianzhixin.ios.flipchess.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/flip_chess.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/flip_chess";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D59B98313055117F00726A96 /* Build configuration list for PBXProject "flip_chess" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D59B98423055118100726A96 /* Debug */,
+				D59B98433055118100726A96 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D59B98443055118100726A96 /* Build configuration list for PBXNativeTarget "flip_chess" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D59B98453055118100726A96 /* Debug */,
+				D59B98463055118100726A96 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		ED0000000000000000000008 /* Build configuration list for PBXNativeTarget "flip_chessTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ED0000000000000000000006 /* Debug */,
+				ED0000000000000000000007 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = D59B982E3055117F00726A96 /* Project object */;
+}
