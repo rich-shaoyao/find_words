@@ -122,6 +122,7 @@ try { load(DIR + 'ui.js'); } catch (e) { loadError = e; }
 function el(id) { return document.getElementById(id); }
 function pieces() { return el('pieces').html; }
 function marks() { return el('marks').html; }
+function route() { return el('route').html; }
 function countHidden() { return (pieces().match(/class="piece hidden/g) || []).length; }
 function countPiece() { return (pieces().match(/<g class="piece /g) || []).length; }
 function faceUpCells(side) {
@@ -185,6 +186,7 @@ ok(pieces().indexOf('class="piece red king"') >= 0, '红帅为明牌');
 ok(pieces().indexOf('class="piece black king"') >= 0, '黑将为明牌');
 ok(el('grid').html.indexOf('CHU RIVER') >= 0 && el('grid').html.indexOf('HAN BORDER') >= 0, '棋盘底纹含河界（英文）');
 eq(el('hudBottom').classList.contains('active') || el('hudTop').classList.contains('active'), true, '当前行动方 HUD 高亮');
+eq(route(), '', '开局时没有「上一步路线」');
 
 section('揭开暗子：只能靠走动（没有原地翻开）');
 runTimers();
@@ -272,6 +274,29 @@ if (picked) {
      '棋子已移动到目标格 (' + mk.r + ',' + mk.c + ')');
   ok(marks().indexOf('last-from') >= 0, '移动后留下起点标记');
   ok(marks().indexOf('mark-dot') < 0 && marks().indexOf('mark-cap') < 0, '走完后落点提示被清除');
+
+  /* 上一步的「移动路线」：#route 层画在棋子之上（起点 → 终点带箭头） */
+  var routeMarkup = route();
+  ok(routeMarkup.indexOf('last-route') >= 0, '走动后保留「上一步路线」（起点 → 终点）');
+  ok(routeMarkup.indexOf('<path class="last-route"') >= 0, '路线末端带箭头');
+  var lineM = /<line class="last-route" x1="([-\d.]+)" y1="([-\d.]+)" x2="([-\d.]+)" y2="([-\d.]+)"/.exec(routeMarkup);
+  ok(!!lineM, '路线含一条线段');
+  if (lineM) {
+    var fx = 60 + picked[1] * 100, fy = 60 + picked[0] * 100;   // 起点圆心（PAD=60 / CELL=100）
+    var tx = 60 + mk.c * 100, ty = 60 + mk.r * 100;             // 终点圆心
+    var lx1 = +lineM[1], ly1 = +lineM[2], lx2 = +lineM[3], ly2 = +lineM[4];
+    var dStart = Math.sqrt((lx1 - fx) * (lx1 - fx) + (ly1 - fy) * (ly1 - fy));
+    var dShaft = Math.sqrt((lx2 - lx1) * (lx2 - lx1) + (ly2 - ly1) * (ly2 - ly1));
+    ok(dStart < 0.01, '线头落在起点圆心（走完后起点是空点，不会被棋子挡住）');
+    ok(dShaft > 0, '线段有可见长度（相邻一步也画得出来）');
+    ok((lx2 - lx1) * (tx - fx) + (ly2 - ly1) * (ty - fy) > 0, '路线走向由起点指向终点');
+    var tipM = /<path class="last-route" d="M[-\d.]+ [-\d.]+ L([-\d.]+) ([-\d.]+) L/.exec(routeMarkup);
+    ok(!!tipM, '箭头可解析（箭尖顶点在 path 中间）');
+    if (tipM) {
+      var dTip = Math.sqrt((+tipM[1] - tx) * (+tipM[1] - tx) + (+tipM[2] - ty) * (+tipM[2] - ty));
+      ok(Math.abs(dTip - 40) < 0.01, '箭尖贴在终点棋子边缘内侧 4pt（不压住棋子面与汉字）');
+    }
+  }
 }
 
 section('悔棋');
@@ -282,6 +307,7 @@ el('btnUndo').onclick();
 runTimers();
 ok(el('banner').textContent !== bBefore || marks() !== mb,
    '悔棋后局面发生回退（行动方 / 最近一步标记被还原）');
+ok(route() !== routeMarkup, '悔棋后路线随最近一步一起还原（不残留上一局的箭头）');
 
 section('弹窗与模式');
 el('btnBack').onclick();

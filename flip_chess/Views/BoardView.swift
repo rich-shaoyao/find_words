@@ -238,6 +238,52 @@ struct BoardView: View {
                 drawPiece(ctx, piece: p, at: Point(r, c))
             }
         }
+
+        // 上一步的移动路线（起点 → 终点带箭头）。画在棋子**之上**：
+        // 终点立着刚走过来的那枚棋子（相邻一步的圆心距就是 100pt，两子之间只余 12pt），
+        // 压在棋子下面会被整条盖掉。
+        if let last = state.last { drawLastRoute(ctx, last) }
+    }
+
+    // MARK: 上一步的路线
+
+    /// 从起点圆心拉一条线到终点棋子边缘，末端带箭头，指明「从哪里走到哪里」。
+    ///
+    /// 两端取法都为了「不压住任何棋子面」：
+    ///   · 起点端：走完这一步后起点必定是**空点**（棋子已经过去），所以直接从圆心射出；
+    ///   · 终点端：箭尖停在终点棋子边缘内侧 4pt，箭头只覆盖棋子外圈，
+    ///     不会盖住棋子上的汉字（汉字大致占中心 ±27pt，箭尖在 40pt 处）。
+    private func drawLastRoute(_ ctx: GraphicsContext, _ last: LastMove) {
+        let a = CGPoint(x: XQTheme.x(last.from.c), y: XQTheme.y(last.from.r))
+        let b = CGPoint(x: XQTheme.x(last.to.c), y: XQTheme.y(last.to.r))
+        let dx = b.x - a.x, dy = b.y - a.y
+        let dist = (dx * dx + dy * dy).squareRoot()
+
+        let tipInset: CGFloat = 40              // 箭尖到终点圆心的距离（棋子边缘内侧 4pt）
+        guard dist > tipInset + 8 else { return }
+        let ux = dx / dist, uy = dy / dist
+
+        let tip = CGPoint(x: b.x - ux * tipInset, y: b.y - uy * tipInset)
+        // 箭头长度：通常 26pt；只在异常近的一步上收窄，且始终给线段留下可见长度
+        let head = min(26, dist - tipInset - 6)
+        let root = CGPoint(x: tip.x - ux * head, y: tip.y - uy * head)
+
+        let color = XQTheme.redInk.opacity(0.82)    // 朱砂：木色棋盘上对比 ≈3.8，鎏金只有 1.1（看不见）
+        let style = StrokeStyle(lineWidth: 4.2, lineCap: .round, lineJoin: .round)
+
+        var shaft = Path()
+        shaft.move(to: a)
+        shaft.addLine(to: root)
+        ctx.stroke(shaft, with: .color(color), style: style)
+
+        // 箭头：以箭尖为顶点，向后张开两条短臂
+        let nx = -uy, ny = ux
+        let arm = head * 0.8, spread = head * 0.55
+        var arrow = Path()
+        arrow.move(to: CGPoint(x: tip.x - ux * arm + nx * spread, y: tip.y - uy * arm + ny * spread))
+        arrow.addLine(to: tip)
+        arrow.addLine(to: CGPoint(x: tip.x - ux * arm - nx * spread, y: tip.y - uy * arm - ny * spread))
+        ctx.stroke(arrow, with: .color(color), style: style)
     }
 
     private func drawPiece(_ ctx: GraphicsContext, piece: Piece, at p: Point) {

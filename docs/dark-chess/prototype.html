@@ -154,6 +154,10 @@ body::after{ /* 细微噪点/纹理，避免大片纯色 */
   transform-box:fill-box;transform-origin:center;animation:spin 6s linear infinite}
 .last-from{fill:none;stroke:#8A6E33;stroke-width:2.6;stroke-dasharray:7 7;opacity:.62}
 .last-to{fill:none;stroke:#B0241C;stroke-width:2.6;opacity:.55}
+/* 上一步的移动路线（起点 → 终点带箭头）：单独一层画在棋子之上，否则被棋子盖住。
+   朱砂而非鎏金：木色棋盘上 #B0241C 的对比度 ≈3.8，而 #D8B65E 只有 1.1（看不见） */
+.last-route{fill:none;stroke:#B0241C;stroke-opacity:.82;stroke-width:4.2;
+  stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
 .hint-ring{fill:none;stroke:#6FD1E8;stroke-width:3.4;opacity:.95;
   transform-box:fill-box;transform-origin:center;animation:blink 1s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:.35}50%{opacity:1}}
@@ -252,6 +256,7 @@ body::after{ /* 细微噪点/纹理，避免大片纯色 */
         <g id="grid"></g>
         <g id="marks"></g>
         <g id="pieces"></g>
+        <g id="route"></g>
       </svg>
     </div>
 
