@@ -259,7 +259,62 @@
         if (crossed) { push(r, c - 1); push(r, c + 1); }
         break;
     }
-    return out;
+    // 传统象棋的「飞将」禁手：把会造成两将照面的落点整批剔除。
+    // 放在最后统一过滤，车/炮那些直接 out.push 的分支也不会漏。
+    var rk = palaceKing(board, RED), bk = palaceKing(board, BLACK);
+    // 快速排除（绝大多数调用走这条）：两将不同列、且这一步动的不是将/帅
+    // → 既不改变将的列、也不改变列上的遮挡，不可能造成照面。
+    // 「是不是将/帅」只看公开信息（明牌 + 类型）；暗棋永远不可能站在将帅点位上，
+    // 所以这里绝不碰暗棋的真实身份。
+    if (!rk || !bk || (rk.c !== bk.c && !(p.up && p.t === 'K'))) return out;
+    // 局面**本来就**照面（只可能出现在测试构造的非法局面里）时不再额外设限，
+    // 否则会把这方的走法全禁掉、凭空判负。
+    if (kingsFace(board, rk, bk)) return out;
+    return out.filter(function (m) { return !facesAfter(board, rk, bk, { r: r, c: c }, m); });
+  }
+
+  // 在九宫内找将/帅。将帅按规则只可能待在九宫里，所以这里只扫 9 格 —— 比全盘扫描便宜 10 倍，
+  // AI 搜索里 legalMoves 是热路径，这点差别很实在。
+  // 若某方将出了九宫（只可能是构造出来的非法局面），返回 null，此时不施加飞将禁手。
+  function palaceKing(board, side) {
+    var rows = side === RED ? [7, 9] : [0, 2];
+    for (var r = rows[0]; r <= rows[1]; r++)
+      for (var c = 3; c <= 5; c++) {
+        var p = board[r][c];
+        if (p && p.s === side && p.t === 'K') return { r: r, c: c };
+      }
+    return null;
+  }
+
+  // 两将**当前**是否照面（只看「格子有没有子」）
+  function kingsFace(board, rk, bk) {
+    if (!rk || !bk || rk.c !== bk.c) return false;
+    for (var r = Math.min(rk.r, bk.r) + 1; r < Math.max(rk.r, bk.r); r++)
+      if (board[r][rk.c]) return false;
+    return true;
+  }
+
+  // 传统象棋的「飞将」：走完这一步之后，双方将/帅是否在同一纵线上**照面**（同列且中间一子也没有）。
+  //
+  // ⚠️ 九宫限制**并不**保证两将不同列 —— 红帅与黑将的九宫列都是 3–5：
+  //    红帅在 (7,3)、黑将在 (0,3) 时，只要这条竖线上没子就是照面
+  //    （旧版说明里「二者永远无法照面」是错的，所以这条禁手必须真的实现）。
+  // 判定只看「格子有没有子」，与暗棋的真实身份无关，因此不泄露任何情报。
+  function facesAfter(board, rk, bk, from, to) {
+    if (!rk || !bk) return false;
+    // 落点上正是一位将/帅 → 它被吃掉，棋盘上不再有它，也就不可能照面
+    if ((to.r === rk.r && to.c === rk.c) || (to.r === bk.r && to.c === bk.c)) return false;
+    // 走完这一步之后两将各自的位置（将/帅自己也会动）
+    var r1 = (rk.r === from.r && rk.c === from.c) ? to : rk;
+    var b1 = (bk.r === from.r && bk.c === from.c) ? to : bk;
+    if (r1.c !== b1.c) return false;
+    var col = r1.c, lo = Math.min(r1.r, b1.r), hi = Math.max(r1.r, b1.r);
+    for (var r = lo + 1; r < hi; r++) {
+      if (r === from.r && from.c === col) continue;   // 这一格刚被腾空
+      if (r === to.r && to.c === col) return false;   // 这一格刚落下棋子 → 挡住了
+      if (board[r][col]) return false;                // 中间有子（明暗都算）
+    }
+    return true;
   }
 
   // 规则 1：只能翻开「己方半场」的暗棋，严禁碰对方半场

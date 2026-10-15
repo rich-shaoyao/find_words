@@ -471,6 +471,56 @@ section('规则 7：帅/将不出九宫');
   eq(E.legalMoves(st, 0, 4).length, 3, '将在黑方九宫内同样只有直线一步');
 })();
 
+/* ============ 10b. 飞将：两将不得照面 ============ */
+// 传统象棋的「飞将」禁手。注意九宫限制**并不**保证两将不同列：
+// 红帅与黑将的九宫列都是 3–5，同列且中间无子完全可能出现。
+section('飞将：将帅不得照面');
+(function () {
+  // 红帅 (9,3)、黑将 (0,4)：列 4 中间一子也没有 → 帅走到 (9,4) 就是照面
+  var st = emptyState();
+  st.turn = RED;
+  put(st, 9, 3, RED, 'K', true);
+  put(st, 0, 4, BLACK, 'K', true);
+  var m = E.legalMoves(st, 9, 3);
+  ok(!has(m, 9, 4), '帅不能走到与对方将同列、中间又无子的位置（照面）');
+  eq(m.length, 1, '帅只剩 (8,3) 一个落点（左边出九宫、右边照面）');
+  ok(has(m, 8, 3), '不同列的落点照旧能走');
+
+  // 列 4 中间有子拦着 → 同一个落点就合法了
+  st = emptyState();
+  st.turn = RED;
+  put(st, 9, 3, RED, 'K', true);
+  put(st, 0, 4, BLACK, 'K', true);
+  put(st, 5, 4, RED, 'P', true);
+  ok(has(E.legalMoves(st, 9, 3), 9, 4), '中间有子拦着时，帅可以走到那一列');
+
+  // 拦着的是一枚**暗子**也算挡住：判定只看「格子有没有子」，与暗子的真实身份无关
+  st = emptyState();
+  st.turn = RED;
+  put(st, 9, 3, RED, 'K', true);
+  put(st, 0, 4, BLACK, 'K', true);
+  put(st, 5, 4, RED, 'R', false);
+  ok(has(E.legalMoves(st, 9, 3), 9, 4), '挡着的是暗子时照样算挡住（不看身份，因此不泄露情报）');
+
+  // 反过来：把唯一的挡子挪开，这一步非法
+  st = emptyState();
+  st.turn = RED;
+  put(st, 9, 4, RED, 'K', true);
+  put(st, 0, 4, BLACK, 'K', true);
+  put(st, 5, 4, RED, 'R', true);          // 列 4 上唯一的挡子
+  m = E.legalMoves(st, 5, 4);
+  ok(has(m, 4, 4) && has(m, 6, 4), '挡子沿这条纵线上下挪，仍然挡在两将之间 —— 合法');
+  ok(!has(m, 5, 3) && !has(m, 5, 5), '挡子一让开这条纵线就成了照面 —— 这一步非法');
+  ok(has(m, 0, 4), '吃将不受影响（吃完对方将就不存在照面）');
+
+  // 非法局面（两将已经照面）不额外设限：否则会把这方的走法全禁掉、凭空判负
+  st = emptyState();
+  st.turn = RED;
+  put(st, 9, 4, RED, 'K', true);
+  put(st, 0, 4, BLACK, 'K', true);
+  eq(E.legalMoves(st, 9, 4).length, 3, '已经照面的（非法）局面走法照旧生成，不会凭空判负');
+})();
+
 /* ============ 11. 兵/卒 ============ */
 section('规则 9：兵/卒永不后退');
 (function () {

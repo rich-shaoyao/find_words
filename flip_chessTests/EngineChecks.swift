@@ -263,7 +263,50 @@ public enum EngineChecks {
             }),
         ] }
 
-        // ═══════════ 6. 炮：炮架明暗皆可、能打将 ═══════════
+        // ═══════════ 5b. 飞将：将帅不得照面 ═══════════
+        //
+        // 传统象棋的「飞将」禁手。⚠️ 九宫限制**并不**保证两将不同列 ——
+        // 红帅与黑将的九宫列都是 3–5，同列且中间无子完全可能出现。
+        section("飞将") { [
+            Check("", "帅不能走到与对方将同列、中间又无子的位置", {
+                let s = scene(turn: .red, [P(9, 3, .red, .king), P(0, 4, .black, .king)])
+                let ms = s.legalMoves(at: Point(9, 3))
+                if has(ms, 9, 4) { return "照面的落点 (9,4) 必须被禁掉，落点=\(ms.count)" }
+                if ms.count != 1 { return "帅只剩 (8,3) 一个落点（左出九宫、右照面），实际 \(ms.count)" }
+                return ok(has(ms, 8, 3), "不同列的落点照旧能走")
+            }),
+            Check("", "中间有子拦着时该落点合法", {
+                let s = scene(turn: .red, [
+                    P(9, 3, .red, .king), P(0, 4, .black, .king),
+                    P(5, 4, .red, .soldier),
+                ])
+                return ok(has(s.legalMoves(at: Point(9, 3)), 9, 4), "有子拦着就不算照面")
+            }),
+            Check("", "挡着的是暗子时照样算挡住（不看身份）", {
+                let s = scene(turn: .red, [
+                    P(9, 3, .red, .king), P(0, 4, .black, .king),
+                    P(5, 4, .red, .chariot, up: false),   // 暗子当挡子
+                ])
+                return ok(has(s.legalMoves(at: Point(9, 3)), 9, 4),
+                          "暗子也是棋盘上的实体，判定只看格子有没有子")
+            }),
+            Check("", "把唯一的挡子挪开是非法的（沿纵线挪动仍合法、吃将也不受影响）", {
+                let s = scene(turn: .red, [
+                    P(9, 4, .red, .king), P(0, 4, .black, .king),
+                    P(5, 4, .red, .chariot),              // 列 4 上唯一的挡子
+                ])
+                let ms = s.legalMoves(at: Point(5, 4))
+                if has(ms, 5, 3) || has(ms, 5, 5) { return "让开纵线的走法必须被禁，落点=\(ms.count)" }
+                if !has(ms, 4, 4) || !has(ms, 6, 4) { return "沿纵线挪动仍然合法，落点=\(ms.count)" }
+                return ok(has(ms, 0, 4), "吃将不受影响（吃完对方将就不存在照面）")
+            }),
+            Check("", "本来就已经照面的非法局面不额外设限", {
+                // 正常对局不可能走到这种局面（所有造成照面的走法都被禁了）；
+                // 只有测试构造得出来，此时不该把走法全禁掉、凭空判负。
+                let s = scene(turn: .red, [P(9, 4, .red, .king), P(0, 4, .black, .king)])
+                return eq(s.legalMoves(at: Point(9, 4)).count, 3, "走法照旧生成")
+            }),
+        ] }
         section("炮") { [
             Check("", "炮架可以是暗棋", {
                 let s = scene(turn: .red, [

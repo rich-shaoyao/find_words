@@ -138,7 +138,64 @@ extension GameState {
                 push(r, c + 1)
             }
         }
-        return out
+
+        // 传统象棋的「飞将」禁手：把会造成两将照面的落点整批剔除。
+        // 放在最后统一过滤，车/炮那些直接 append 的分支也不会漏。
+        guard let rk = palaceKing(of: .red), let bk = palaceKing(of: .black) else { return out }
+        // 快速排除（绝大多数调用走这条）：两将不同列、且这一步动的不是将/帅
+        // → 既不改变将的列、也不改变列上的遮挡，不可能造成照面。
+        // 「是不是将/帅」只看公开信息（明牌 + 类型）；暗棋永远不可能站在将帅点位上，
+        // 所以这里绝不碰暗棋的真实身份。
+        if rk.c != bk.c && !(p.isFaceUp && p.type == .king) { return out }
+        // 局面**本来就**照面（只可能出现在测试构造的非法局面里）时不再额外设限，
+        // 否则会把这方的走法全禁掉、凭空判负。
+        if kingsFace(rk, bk) { return out }
+        return out.filter { !facesBetween(rk, bk, from: from, to: $0) }
+    }
+
+    /// 在九宫内找将/帅。将帅按规则只可能待在九宫里，所以这里只扫 9 格 ——
+    /// 比全盘扫描便宜 10 倍，而 `legalMoves` 是 AI 搜索的热路径，这点差别很实在。
+    /// 若某方将出了九宫（只可能是构造出来的非法局面），返回 nil，此时不施加飞将禁手。
+    private func palaceKing(of side: Side) -> Point? {
+        let rows = (side == .red) ? 7...9 : 0...2
+        for r in rows {
+            for c in 3...5 {
+                if let p = piece(at: r, c), p.side == side, p.type == .king { return Point(r, c) }
+            }
+        }
+        return nil
+    }
+
+    /// 两将**当前**是否照面（只看「格子有没有子」）
+    private func kingsFace(_ redKing: Point?, _ blackKing: Point?) -> Bool {
+        guard let rk = redKing, let bk = blackKing, rk.c == bk.c else { return false }
+        for rr in (min(rk.r, bk.r) + 1)..<max(rk.r, bk.r) {
+            if piece(at: rr, rk.c) != nil { return false }
+        }
+        return true
+    }
+
+    /// 传统象棋的「飞将」：走完 `from → to` 之后，双方将/帅是否在同一纵线上**照面**
+    /// （同列，且两者之间一子也没有）。
+    ///
+    /// ⚠️ 九宫限制**并不**保证两将不同列 —— 红帅与黑将的九宫列都是 3–5：
+    /// 红帅 (7,3) 对黑将 (0,3)、这条竖线上没子就是照面（旧说明里「二者永远无法照面」是错的）。
+    /// 判定只看「格子有没有子」，与暗棋的真实身份无关，因此不泄露任何情报。
+    private func facesBetween(_ redKing: Point?, _ blackKing: Point?,
+                              from: Point, to: Point) -> Bool {
+        guard let rk = redKing, let bk = blackKing else { return false }
+        // 落点上正是一位将/帅 → 它被吃掉，棋盘上不再有它，也就不可能照面
+        if to == rk || to == bk { return false }
+        let r1 = (rk == from) ? to : rk          // 将/帅自己也会动
+        let b1 = (bk == from) ? to : bk
+        guard r1.c == b1.c else { return false }
+        let col = r1.c
+        for rr in (min(r1.r, b1.r) + 1)..<max(r1.r, b1.r) {
+            if rr == from.r && from.c == col { continue }   // 这一格刚被腾空
+            if rr == to.r && to.c == col { return false }   // 这一格刚落下棋子 → 挡住了
+            if piece(at: rr, col) != nil { return false }   // 中间有子（明暗都算）
+        }
+        return true
     }
 
     // MARK: 可操作性
