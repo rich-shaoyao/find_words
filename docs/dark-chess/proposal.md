@@ -14,7 +14,7 @@
 | `engine.js` | 规则引擎，纯逻辑无 DOM，是移植到 Swift 的**唯一事实来源** |
 | `ui.js` | 原型交互层（渲染 / 点击 / 动效 / AI 回合调度） |
 | `engine.test.js` | 引擎单元测试，`jsc engine.test.js`，203 项断言全绿 |
-| `ui.test.js` | 交互层回归测试（手写 DOM 桩），`jsc ui.test.js`，74 项断言全绿 |
+| `ui.test.js` | 交互层回归测试（手写 DOM 桩），`jsc ui.test.js`，81 项断言全绿 |
 
 打开方式（二选一）：
 
@@ -461,12 +461,16 @@ Bundle ID 建议：`com.yianzhixin.ios.flipchess`（沿用现有团队前缀，�
 
 | 场景 | 动效 | 实现要点 |
 | --- | --- | --- |
-| 暗子走完翻开（唯一的翻面时机） | **Y 轴翻转**：0.175s 压扁 → 换面 → 0.175s 展开 | ⚠️ 坑：SVG `<g>` 的 CSS `transform` 会**覆盖**它的 `transform="translate(...)"` 属性，把棋子甩到原点。所以定位层和动画层必须是**两层嵌套 `<g>`** |
-| 落子 | 直接切换 + 起点/终点标记 | 不加位移补间，棋盘类游戏里补间反而拖沓 |
+| 走子（每一次行动） | **移动 0.6s + 原地翻开 0.4s = 共 1s**；明子没有可翻的面，只有移动段 0.6s | 进度按**真实时间**算（`animState()` / `MoveAnimation`），60fps 重绘；移动段用缓入缓出（smoothstep）。⚠️ 动画期间必须挡住输入（`busy` / `isBusy`），否则连点会插进动画中间 |
+| 暗子走完翻开（唯一的翻面时机） | 滑到终点后**原地翻面**：水平压扁 1 → 0.06 → 1（翻过一半那一刻换面） | 压扁是围绕棋子中心的 `scale(f,1)`（JS 走外层 `<g>` 的 transform，Swift 走 `GraphicsContext.scaleBy`）。⚠️ 坑：SVG `<g>` 的 CSS `transform` 会**覆盖**它的 `transform="translate(...)"` 属性，把棋子甩到原点 —— 现在整条动效都由 JS 逐帧写 `translate(x,y) scale(f,1)`，不再混用 CSS 动画 |
+| 落子 | 动画结束时起点/终点标记 + 路线才出现（那一步才算「落地」） | 动画期间不画「上一步」标记，避免箭头指向一个还在路上的棋子 |
 | 选中 | 外环 5s 匀速旋转 | `transform-box: fill-box` + `transform-origin: center` |
 | 结算 | 卡片从下方 16px 弹入，`cubic-bezier(.2,.9,.3,1.3)` 回弹 | — |
 
 > **暗棋走完自动翻开**也要播翻面动画——这是规则 4 的视觉提示，玩家必须能一眼看到「这步走完暴露了什么」。
+>
+> 翻开完成后补一个金色扩散环（0.42s，不阻塞操作）。⚠️ 环画在**棋子之外**的棋盘上，
+> 所以要按棋盘的木色挑颜色：鎏金 `#D8B65E` 在木色上对比度只有 1.1（看不见），改用朱砂 `#B0241C`（≈3.8）。
 
 ### 5.9 音效
 
@@ -616,7 +620,10 @@ flip_chess/                      ← 仓库根目录仍叫 find_words，工程�
 棋盘与棋子用 **SwiftUI `Canvas`** 绘制（比 90 个 View 轻得多，且翻子动画可直接操作 `GraphicsContext`），
 也可以用 `ZStack` + `matchedGeometryEffect`，但 32 个棋子 + 45 个高亮元素对布局系统压力不小，`Canvas` 更稳。
 
-翻子动画在 SwiftUI 里用 `rotation3DEffect(.degrees(180), axis: (0,1,0))` 即可，比 Web 那边更好写。
+翻子动画也可以包一层 `rotation3DEffect(.degrees(180), axis: (0,1,0))`；本作实际走的是 Canvas 内
+`GraphicsContext.scaleBy(x: flatten, y: 1)`（围绕棋子中心水平压扁），与 Web 原型**同一套逐帧式子**
+（`MoveAnimation` ↔ `animState()`），两端的时间线（0.6s 移动 + 0.4s 翻开）因此能逐项对齐。
+走子动画在 `GameStore` 里用 `Date()` 推进、每帧写 `@Published` 触发重绘，动画期间 `isBusy = true` 挡住输入。
 
 ### 8.4 状态管理
 
@@ -706,7 +713,7 @@ flip_chess/                       ← 源码目录
 └─ FlipChessApp.swift
 flip_chessTests/
 ├─ EngineChecks.swift   断言表（41 项，一份数据表）
-└─ EngineTests.swift    XCTest 入口
+└─ EngineTests.swift    XCTest 入口（引擎检查表 + 开局跨端基线 + 走子动画时间线 MoveAnimationTests）
 ```
 
 #### 移植时的三处关键决定
@@ -778,13 +785,25 @@ $ jsc engine.test.js
 ✅ 全部通过：203 项断言        ← 规则引擎（布阵 / 暗子半场限制 / 位置走法 / 吃子 / 胜负 / AI / 炮 / 无原地翻开 / 棋子英文名表）
 
 $ jsc ui.test.js               ← 交互层（手写 DOM 桩驱动真实点击序列）
-✅ 全部通过：74 项断言
+✅ 全部通过：81 项断言
    · 开局渲染 32 子 / 30 暗 / 2 明牌将帅（将帅固定在底线正中）
    · 推暗子揭面、走子、悔棋、弹窗、模式切换全部走通
    · 上一步路线：起点圆心 → 箭尖贴终点棋子边缘内侧（不压住棋子面）
+   · 走子动画：走子后停在半路（不是瞬移）→ 翻面时压扁到 0.06 → 播完才落在交叉点并出现标记
+   · 动画期间输入被挡住（连点不会插进动画中间）
    · 棋子面只留汉字（居中）、界面文案全英文、长按看英文说明
    · 人机连打 100 局：无异常抛出、无棋盘崩塌
 ```
+
+> 新版 macOS 已不再附带 `jsc`。用 `osascript -l JavaScript` 加个 `load`/`print` 垫片即可跑
+> 同样这两个文件（JXA 底层也是 JavaScriptCore），退出码就是断言结果。
+> 注意走子动画按**真实时间**推进，而 JXA 里时间不流逝：测试桩把 `Date.now` 换成假时钟、
+> 每 flush 一个定时器往前拨 100ms，1 秒的动画于是在 ~10 帧内播完（见 `ui.test.js` 的 `tick()`）。
+
+> 本机 Xcode 15.2 现在可以直接跑工程（工程零第三方依赖，不需要链接 AdMob）：
+> `xcodebuild build -scheme flip_chess -destination 'generic/platform=iOS Simulator'`、
+> `xcodebuild test -scheme flip_chess -destination 'platform=iOS Simulator,name=iPhone 15'`
+> （5 个 XCTest 全绿：引擎检查表 / 开局跨端基线 / 走子动画时间线 ×3）。
 
 > 说明：`ui.test.js` 验证的是**交互逻辑与状态流转**，不覆盖 CSS/SVG 的视觉呈现。
 > 视觉效果请在浏览器里打开 `prototype.html` 实地确认（本机沙箱无法启动图形浏览器，这一步需要你来看）。

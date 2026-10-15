@@ -54,3 +54,66 @@ final class DarkChessEngineTests: XCTestCase {
                        "开局前 26 格必须与 engine.js 逐格一致")
     }
 }
+
+/// 走子动画的时间线：暗子 = 移动 0.6s + 原地翻开 0.4s（共 1s）；明子只有移动段 0.6s。
+/// 这套式子与原型 ui.js 的 animState() 同构（ui.test.js 里有对应断言）。
+final class MoveAnimationTests: XCTestCase {
+
+    private func piece(faceUp: Bool) -> Piece { Piece(.red, .chariot, isFaceUp: faceUp) }
+
+    func testHiddenPieceTimeline() {
+        var a = MoveAnimation(from: Point(9, 0), to: Point(8, 0),
+                              mover: piece(faceUp: false), victim: nil, didReveal: true)
+        XCTAssertEqual(a.duration, 1.0, accuracy: 1e-9, "暗子是「移动 + 翻开」共 1 秒")
+
+        // 起步：还在起点，也没开始翻面
+        XCTAssertEqual(a.easedMove, 0, accuracy: 1e-9)
+        XCTAssertEqual(a.flatten, 1, accuracy: 1e-9)
+        XCTAssertEqual(a.displayPiece?.isFaceUp, false, "移动途中仍是背面")
+
+        // 移动段中点：滑到一半（缓入缓出，正中恰好 0.5）
+        a.progress = 0.3
+        XCTAssertEqual(a.easedMove, 0.5, accuracy: 1e-9)
+        XCTAssertEqual(a.flatten, 1, accuracy: 1e-9)
+
+        // 移动段结束：正好落在终点，还没翻面
+        a.progress = 0.6
+        XCTAssertEqual(a.easedMove, 1, accuracy: 1e-9)
+        XCTAssertEqual(a.flipProgress ?? -1, 0, accuracy: 1e-9)
+
+        // 翻面过半：压到最扁，且已经换成翻开后的那一面
+        a.progress = 0.8
+        XCTAssertEqual(a.flipProgress ?? -1, 0.5, accuracy: 1e-9)
+        XCTAssertEqual(a.flatten, 0.06, accuracy: 1e-6, "翻面到一半时棋子几乎没有宽度")
+        XCTAssertEqual(a.displayPiece?.isFaceUp, true, "翻过一半就换成明牌的面")
+
+        // 播完：展开回原样，明牌
+        a.progress = 1.0
+        XCTAssertEqual(a.flatten, 1, accuracy: 1e-9)
+        XCTAssertEqual(a.displayPiece?.isFaceUp, true)
+    }
+
+    func testFaceUpPieceTimeline() {
+        var a = MoveAnimation(from: Point(9, 0), to: Point(7, 0),
+                              mover: piece(faceUp: true), victim: nil, didReveal: false)
+        XCTAssertEqual(a.duration, 0.6, accuracy: 1e-9, "明子没有可翻的面，只有移动段")
+
+        XCTAssertNil(a.flipProgress, "明子不该有翻面段")
+        a.progress = 0.5
+        XCTAssertEqual(a.flatten, 1, accuracy: 1e-9, "明子不该被压扁")
+
+        a.progress = 1.0
+        XCTAssertEqual(a.easedMove, 1, accuracy: 1e-9)
+        XCTAssertEqual(a.displayPiece?.isFaceUp, true)
+    }
+
+    /// 被吃掉的棋子不参与翻面：这一步只是「谁被吃掉了」，淡出由 UI 按 easedMove 算
+    func testCaptureKeepsVictimAside() {
+        let victim = Piece(.black, .soldier, isFaceUp: true)
+        var a = MoveAnimation(from: Point(9, 0), to: Point(8, 0),
+                              mover: piece(faceUp: true), victim: victim, didReveal: false)
+        a.progress = 1.0
+        XCTAssertEqual(a.victim, victim, "被吃的棋子原样留在动画里，供 UI 淡出")
+        XCTAssertEqual(a.displayPiece, a.mover, "走过去的是走子的那枚，不是被吃的")
+    }
+}

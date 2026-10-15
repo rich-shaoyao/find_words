@@ -183,9 +183,10 @@ struct BoardView: View {
 
     private func drawPieces(_ ctx: GraphicsContext) {
         let state = store.state
+        let anim = store.moveAnimation
 
-        // 最近一步
-        if let last = state.last {
+        // 最近一步（动画播完这一步才算「落地」，所以动画期间先不画）
+        if anim == nil, let last = state.last {
             for (p, isTarget) in [(last.from, false), (last.to, true)] {
                 let rect = CGRect(x: XQTheme.x(p.c) - 46, y: XQTheme.y(p.r) - 46, width: 92, height: 92)
                 let path = Path(ellipseIn: rect)
@@ -219,30 +220,48 @@ struct BoardView: View {
             }
         }
 
-        // 刚翻开的棋子：外圈金色扩散环（翻面动效）
+        // 刚翻开的棋子：外圈扩散环（翻面动效）。朱砂而非鎏金 —— 环画在棋子外的**木色棋盘**上，
+        // 鎏金 #D8B65E 与 #DFBC88 的相对亮度几乎相同（对比度 1.1），根本看不见。
         if let rev = store.revealAnimation {
             let centre = CGPoint(x: XQTheme.x(rev.c), y: XQTheme.y(rev.r))
             for step in 0..<3 {
                 let rr = 46 + CGFloat(step) * 12
                 let rect = CGRect(x: centre.x - rr, y: centre.y - rr, width: rr * 2, height: rr * 2)
                 ctx.stroke(Path(ellipseIn: rect),
-                           with: .color(XQTheme.gold.opacity(0.55 - Double(step) * 0.17)),
+                           with: .color(XQTheme.redInk.opacity(0.55 - Double(step) * 0.17)),
                            lineWidth: 3)
             }
         }
 
-        // 棋子
+        // 棋子：动画期间终点格让位给「在途」的那枚，免得出现两个棋子
         for r in 0..<XQTheme.boardRows {
             for c in 0..<XQTheme.boardCols {
+                if let anim, anim.to == Point(r, c) { continue }
                 guard let p = state.piece(at: r, c) else { continue }
                 drawPiece(ctx, piece: p, at: Point(r, c))
+            }
+        }
+
+        // 走子动画：在途的棋子沿直线滑向终点（暗子滑到后原地翻开），被吃的棋子淡出
+        if let anim {
+            if let victim = anim.victim {
+                drawPiece(ctx, piece: victim,
+                          atCentre: CGPoint(x: XQTheme.x(anim.to.c), y: XQTheme.y(anim.to.r)),
+                          opacity: 1 - anim.easedMove)
+            }
+            if let piece = anim.displayPiece {
+                let a = CGPoint(x: XQTheme.x(anim.from.c), y: XQTheme.y(anim.from.r))
+                let b = CGPoint(x: XQTheme.x(anim.to.c), y: XQTheme.y(anim.to.r))
+                let k = CGFloat(anim.easedMove)
+                let centre = CGPoint(x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k)
+                drawPiece(ctx, piece: piece, atCentre: centre, flatten: CGFloat(anim.flatten))
             }
         }
 
         // 上一步的移动路线（起点 → 终点带箭头）。画在棋子**之上**：
         // 终点立着刚走过来的那枚棋子（相邻一步的圆心距就是 100pt，两子之间只余 12pt），
         // 压在棋子下面会被整条盖掉。
-        if let last = state.last { drawLastRoute(ctx, last) }
+        if anim == nil, let last = state.last { drawLastRoute(ctx, last) }
     }
 
     // MARK: 上一步的路线
@@ -287,9 +306,25 @@ struct BoardView: View {
     }
 
     private func drawPiece(_ ctx: GraphicsContext, piece: Piece, at p: Point) {
-        let cx = XQTheme.x(p.c), cy = XQTheme.y(p.r)
+        drawPiece(ctx, piece: piece,
+                  atCentre: CGPoint(x: XQTheme.x(p.c), y: XQTheme.y(p.r)),
+                  isSelected: store.selected == p)
+    }
+
+    /// 画一枚棋子。定位用**画布坐标** —— 动画中的棋子会落在两个交叉点之间，
+    /// 所以不能只按交叉点定位。`opacity` 用于被吃棋子的淡出；`flatten` 是水平压扁
+    /// 系数（1 = 正常，翻面动效会压到 0.06，看起来就是棋子原地翻了个面）。
+    private func drawPiece(_ ctx: GraphicsContext, piece: Piece, atCentre centre: CGPoint,
+                           isSelected: Bool = false, opacity: Double = 1, flatten: Double = 1) {
+        var ctx = ctx
+        if opacity < 1 { ctx.opacity = opacity }
+        if flatten < 1 {
+            ctx.translateBy(x: centre.x, y: centre.y)
+            ctx.scaleBy(x: flatten, y: 1)
+            ctx.translateBy(x: -centre.x, y: -centre.y)
+        }
+        let cx = centre.x, cy = centre.y
         let r = XQTheme.pieceRadius
-        let isSelected = store.selected == p
 
         // 阴影
         ctx.fill(Path(ellipseIn: CGRect(x: cx - r, y: cy - r + 6, width: r * 2, height: r * 2)),

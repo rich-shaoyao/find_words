@@ -97,6 +97,13 @@ function setTimeout(fn) { TIMERS.push({ id: ++TIMER_ID, fn: fn, dead: false }); 
 function clearTimeout(id) {
   for (var i = 0; i < TIMERS.length; i++) if (TIMERS[i].id === id) TIMERS[i].dead = true;
 }
+/* jsc 里时间不流逝，而走子动画是按**真实时间**推进的（浏览器里 1 秒）。
+   所以给时钟换成可推进的假时钟：每 flush 一个定时器就把时间往前拨 100ms，
+   动画于是在 ~10 帧内播完 —— 帧数与真实时长脱钩，断言看到的仍是真实行为。
+   100ms 也远小于「长按后 700ms 内吞掉 click」那个窗口，长按测试不受影响。 */
+var CLOCK_MS = 1700000000000;
+Date.now = function () { return CLOCK_MS; };
+function tick() { CLOCK_MS += 100; }
 // 只跑队列里最靠前的一个。长按测试必须用它：flash 内部还会排一个 1700ms 的
 // 「复原提示条」定时器，若跟 runTimers 一起全跑掉，说明刚弹出就被覆盖回去了。
 function flushOne() {
@@ -104,13 +111,17 @@ function flushOne() {
   while (TIMERS.length && guard++ < 500) {
     var t = TIMERS.shift();
     if (t.dead) continue;
+    tick();
     t.fn();
     return;
   }
 }
 function runTimers() {
   var guard = 0;
-  while (TIMERS.length && guard++ < 500) { var t = TIMERS.shift(); if (!t.dead) t.fn(); }
+  while (TIMERS.length && guard++ < 500) {
+    var t = TIMERS.shift();
+    if (!t.dead) { tick(); t.fn(); }
+  }
 }
 window = { AudioContext: undefined, webkitAudioContext: undefined };  // beep 走 try/catch 静默分支
 
@@ -123,6 +134,12 @@ function el(id) { return document.getElementById(id); }
 function pieces() { return el('pieces').html; }
 function marks() { return el('marks').html; }
 function route() { return el('route').html; }
+/* 读某个格子上的棋子的画布坐标（在途的棋子在动画期间不在交叉点上） */
+function transformOf(r, c) {
+  var re = new RegExp('data-cell="' + r + '-' + c + '" transform="translate\\(([-\\d.]+),([-\\d.]+)\\)([^"]*)"');
+  var m = re.exec(pieces());
+  return m ? { x: +m[1], y: +m[2], extra: m[3] } : null;
+}
 function countHidden() { return (pieces().match(/class="piece hidden/g) || []).length; }
 function countPiece() { return (pieces().match(/<g class="piece /g) || []).length; }
 function faceUpCells(side) {
@@ -219,14 +236,38 @@ runTimers();
 eq(countHidden(), h0, '再点一次不会翻开它（暗子数不变）');
 eq(PIECES_INDEX[t0.r + '-' + t0.c].classList.contains('selected'), false, '再点一次只是取消选中');
 
-// 真的走一步 → 走完自动翻开
+// 真的走一步 → 走完自动翻开（这一步带完整的走子动画：移动 + 原地翻开）
 clickCell(t0.r, t0.c);
 runTimers();
 var mk0 = findFirstMark();
 ok(!!mk0, '重新选中后有落点可走');
+
+TIMERS = [];                        // 只观察这一步的动画帧
 clickCell(mk0.r, mk0.c);
+var inFlight = transformOf(mk0.r, mk0.c);
+ok(!!inFlight, '走子动画：终点格上是「在途」的棋子');
+ok(!!inFlight && (inFlight.x !== 60 + mk0.c * 100 || inFlight.y !== 60 + mk0.r * 100),
+   '在途的棋子还没到终点 —— 不是瞬间跳过去');
+ok(marks().indexOf('last-to') < 0 && route() === '',
+   '动画期间不画「上一步」标记与路线（这一步还没落地）');
+var snapshot = pieces();
+clickCell(9, 4);                    // 动画期间点棋盘（红帅）
+eq(pieces(), snapshot, '动画期间输入被挡住：不选中、也不走子');
+
+var minFlat = 1, frames = 0;
+while (TIMERS.length && frames++ < 60) {
+  flushOne();
+  var fm = /scale\((0?\.\d+),1\)/.exec(pieces());
+  if (fm) minFlat = Math.min(minFlat, +fm[1]);
+}
+ok(frames > 5, '动画分多帧播放（用了 ' + frames + ' 帧）');
+ok(minFlat < 0.5, '翻面动效：棋子被水平压扁到 ' + minFlat.toFixed(2) + ' 才换面（原地翻开）');
 runTimers();
+
 eq(countHidden(), h0 - 1, '走完自动翻开 → 暗子数恰好 -1');
+var landed = transformOf(mk0.r, mk0.c);
+ok(!!landed && Math.abs(landed.x - (60 + mk0.c * 100)) < 0.01 && Math.abs(landed.y - (60 + mk0.r * 100)) < 0.01,
+   '动画播完 → 棋子正好落在终点交叉点上');
 ok(marks().indexOf('last-to') >= 0, '走动后留下「最近一步」标记');
 
 section('暗棋落点不泄露归属');

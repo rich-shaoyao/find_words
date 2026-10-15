@@ -28,6 +28,61 @@ public struct BoardMark: Identifiable, Equatable {
     public var kind: Kind
 }
 
+/// 一次走子的动画状态。
+///
+/// 局面（GameState）在动画开始前就已经算完（值语义），这里只描述
+/// 「棋盘现在该按什么样子画」—— 播完就丢掉，不参与任何规则判定。
+public struct MoveAnimation: Equatable {
+
+    /// 移动段的时长：明子只有这一段
+    public static let moveSeconds: Double = 0.6
+    /// 暗子「移动 + 翻开」的总时长
+    public static let revealSeconds: Double = 1.0
+
+    public var from: Point
+    public var to: Point
+    /// 起点棋子走之前的样子（暗子就是背面）
+    public var mover: Piece?
+    /// 被吃掉的棋子：停在终点，随移动进度淡出
+    public var victim: Piece?
+    /// 这一步是否让棋子翻开（暗子走完必翻开）
+    public var didReveal: Bool
+    /// 整段动画的进度 0..1（含翻面段）
+    public var progress: Double = 0
+
+    /// 整段时长
+    public var duration: Double { didReveal ? Self.revealSeconds : Self.moveSeconds }
+
+    /// 移动段占整段的比例：明子 = 1（整段都在移动）
+    public var moveRatio: Double { didReveal ? Self.moveSeconds / Self.revealSeconds : 1 }
+
+    /// 移动进度 0..1，带缓入缓出（滑到终点时慢下来）
+    public var easedMove: Double {
+        let t = min(1, max(0, progress / moveRatio))
+        return t * t * (3 - 2 * t)
+    }
+
+    /// 翻面进度 0..1；这一步不需要翻面时为 nil
+    public var flipProgress: Double? {
+        guard didReveal else { return nil }
+        return min(1, max(0, (progress - moveRatio) / (1 - moveRatio)))
+    }
+
+    /// 水平压扁系数：1 → 0.06 → 1（翻面就是「压扁 → 换面 → 展开」）
+    public var flatten: Double {
+        guard let f = flipProgress else { return 1 }
+        let k = f < 0.5 ? f * 2 : (1 - f) * 2      // 0 → 1 → 0
+        return 1 - k * 0.94
+    }
+
+    /// 当前该画哪一面：翻过一半（棋子最扁的那一刻）就换成翻开后的样子
+    public var displayPiece: Piece? {
+        guard var m = mover else { return nil }
+        if let f = flipProgress, f >= 0.5 { m.isFaceUp = true }
+        return m
+    }
+}
+
 @MainActor
 public final class GameStore: ObservableObject {
 
@@ -47,6 +102,8 @@ public final class GameStore: ObservableObject {
     @Published public private(set) var canUndo = false
     /// 刚刚翻面的格子（用于播翻面动效；读后由 UI 自行清空）
     @Published public var revealAnimation: Point?
+    /// 正在播的走子动画（nil = 没有动画；棋盘按 state 直接画）
+    @Published public private(set) var moveAnimation: MoveAnimation?
     @Published public var result: ResultInfo?
 
     public enum BannerTone { case normal, warn, good }
@@ -59,6 +116,8 @@ public final class GameStore: ObservableObject {
     private var undoStack: [GameState] = []
     private var aiTask: Task<Void, Never>?
     private var bannerResetTask: Task<Void, Never>?
+    private var animationTask: Task<Void, Never>?
+    private var revealBurstTask: Task<Void, Never>?
 
     public struct ResultInfo: Identifiable, Equatable {
         public let id = UUID()
@@ -77,6 +136,7 @@ public final class GameStore: ObservableObject {
 
     public func start(mode: GameMode, level: AILevel) {
         aiTask?.cancel()
+        cancelAnimation()
         self.mode = mode
         self.level = level
         undoStack = []
@@ -183,8 +243,9 @@ public final class GameStore: ObservableObject {
 
     private func performMove(from: Point, to: Point) {
         let mover = state.piece(at: from)
+        let victim = state.piece(at: to)
         let willReveal = !(mover?.isFaceUp ?? true)
-        SoundKit.shared.move(didCapture: state.piece(at: to) != nil)
+        SoundKit.shared.move(didCapture: victim != nil)
 
         undoStack.append(state)
         state = state.applying(Action(from: from, to: to))
@@ -192,22 +253,61 @@ public final class GameStore: ObservableObject {
         legalTargets = []
         hint = nil
         refreshUndo()
-        if willReveal {
-            revealAnimation = to
-            // 动效播完就清掉标记，避免棋盘上一直挂着扩散环
-            Task { [weak self] in
-                try? await Task.sleep(nanoseconds: 420_000_000)
-                guard let self, self.revealAnimation == to else { return }
-                self.revealAnimation = nil
-            }
-        }
+
+        // 局面已经算完（值语义），棋盘先按「动画中的样子」画，播完才放开输入。
+        // 暗子「移动 0.6s + 翻开 0.4s」共 1s；明子没有可翻的面，只有移动段 0.6s。
+        animationTask?.cancel()
+        revealBurstTask?.cancel()
+        revealAnimation = nil
+        isBusy = true
+        let animation = MoveAnimation(from: from, to: to, mover: mover,
+                                      victim: victim, didReveal: willReveal)
+        moveAnimation = animation
         refreshBanner()
 
-        if state.isOver {
-            finish()
-        } else {
-            scheduleAIIfNeeded()
+        animationTask = Task { [weak self] in
+            let started = Date()
+            while true {
+                guard let self, !Task.isCancelled else { return }
+                let t = Date().timeIntervalSince(started) / animation.duration
+                self.moveAnimation?.progress = min(1, t)
+                if t >= 1 { break }
+                try? await Task.sleep(nanoseconds: 16_000_000)
+                if Task.isCancelled { return }
+            }
+            guard let self, !Task.isCancelled else { return }
+            self.moveAnimation = nil
+            self.isBusy = false
+            if willReveal { self.burstReveal(at: to) }
+            self.refreshBanner()
+            if self.state.isOver {
+                self.finish()
+            } else {
+                self.scheduleAIIfNeeded()
+            }
         }
+    }
+
+    /// 翻开完成：扩散环（0.42s 后自动收掉，不阻塞操作）
+    private func burstReveal(at p: Point) {
+        revealAnimation = p
+        revealBurstTask?.cancel()
+        revealBurstTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 420_000_000)
+            guard let self, self.revealAnimation == p else { return }
+            self.revealAnimation = nil
+        }
+    }
+
+    /// 收掉正在播的走子动画（重开 / 认输时用）
+    private func cancelAnimation() {
+        animationTask?.cancel()
+        animationTask = nil
+        revealBurstTask?.cancel()
+        revealBurstTask = nil
+        moveAnimation = nil
+        revealAnimation = nil
+        isBusy = false
     }
 
     private func scheduleAIIfNeeded() {
@@ -264,6 +364,7 @@ public final class GameStore: ObservableObject {
 
     public func resign() {
         guard !state.isOver else { return }
+        cancelAnimation()          // 动画中途认输：先收掉动画，免得它播完又收尾一次
         let loser = mode.isAI ? mySide : state.turn
         state = state.resigning(side: loser)
         selected = nil; legalTargets = []; hint = nil

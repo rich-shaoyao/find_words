@@ -69,7 +69,12 @@ if (typeof document !== 'undefined') (function () {
   }
 
   /* ---------------- 渲染 ---------------- */
-  function pieceSVG(p, r, c) {
+  /* opt 让棋子画到任意位置（走子动画里的「在途」棋子要用）：
+       x / y    —— 画布坐标（不传就按交叉点 r,c）
+       flatten  —— 水平压扁系数（1 = 正常；翻面动效会压到 0.06，看起来就是原地翻面）
+       opacity  —— 被吃掉的棋子在走子过程中淡出 */
+  function pieceSVG(p, r, c, opt) {
+    opt = opt || {};
     var cls = 'piece ' + (p.up ? (p.s === E.RED ? 'red' : 'black') : 'hidden');
     if (p.t === 'K') cls += ' king';
     if (selected && selected.r === r && selected.c === c) cls += ' selected';
@@ -85,18 +90,80 @@ if (typeof document !== 'undefined') (function () {
       inner += '<text class="p-text" dy="0.35em">' + E.name(p) + '</text>';
     } else inner += '<text class="p-glyph" dy="0.35em">?</text>';
     if (selected && selected.r === r && selected.c === c) inner += '<circle class="sel-ring" r="51"/>';
-    return '<g class="' + cls + '" data-cell="' + r + '-' + c + '" transform="translate(' +
-           X(c) + ',' + Y(r) + ')"><g class="piece-inner">' + inner + '</g></g>';
+    var px = opt.x === undefined ? X(c) : opt.x;
+    var py = opt.y === undefined ? Y(r) : opt.y;
+    var tf = 'translate(' + px + ',' + py + ')';
+    if (opt.flatten !== undefined && opt.flatten < 1) tf += ' scale(' + opt.flatten + ',1)';
+    var op = (opt.opacity !== undefined && opt.opacity < 1) ? ' opacity="' + opt.opacity + '"' : '';
+    return '<g class="' + cls + '" data-cell="' + r + '-' + c + '" transform="' + tf + '"' + op +
+           '><g class="piece-inner">' + inner + '</g></g>';
+  }
+
+  /* ---------------- 走子动画 ----------------
+     局面在 apply 之后就已经是「走完」的新局面，棋盘先按「动画中的样子」画：
+     暗子 = 移动 0.6s + 到点后原地翻开 0.4s（共 1s）；明子没有可翻的面，只有移动段 0.6s。
+     进度按**真实时间**算（与 iOS 端 MoveAnimation 同一套式子），所以浏览器里就是 1 秒：
+     测试里靠假时钟把时间推快，帧数才会很少。 */
+  var MOVE_SEC = 0.6, REVEAL_SEC = 1.0;
+  var anim = null;          // {from, to, mover, victim, didReveal, t0}
+  var revealCell = null;    // 刚翻开的格子：朱砂扩散环
+
+  function animProgress(a) {
+    return Math.min(1, (Date.now() - a.t0) / 1000 / (a.didReveal ? REVEAL_SEC : MOVE_SEC));
+  }
+
+  /* 进度 → 这一帧该怎么画：ease = 移动进度（缓入缓出）、flatten = 水平压扁系数 */
+  function animState(a) {
+    var p = animProgress(a);
+    var ratio = a.didReveal ? MOVE_SEC / REVEAL_SEC : 1;
+    var mv = Math.min(1, p / ratio);
+    var flip = a.didReveal ? Math.min(1, Math.max(0, (p - ratio) / (1 - ratio))) : null;
+    var k = flip === null ? 0 : (flip < 0.5 ? flip * 2 : (1 - flip) * 2);
+    return {
+      ease: mv * mv * (3 - 2 * mv),
+      flip: flip,
+      flatten: 1 - k * 0.94
+    };
+  }
+
+  function burstReveal(to) {
+    revealCell = to;
+    setTimeout(function () {
+      if (revealCell === to) { revealCell = null; render(); }
+    }, 420);
+  }
+
+  function stepAnim() {
+    if (!anim) return;
+    if (animProgress(anim) >= 1) {          // 播完：收掉动画、把输入放开
+      var done = anim;
+      anim = null;
+      busy = false;
+      if (done.didReveal) burstReveal(done.to);
+      render();
+      afterMove();
+      return;
+    }
+    render();
+    setTimeout(stepAnim, 16);
   }
 
   function marksSVG() {
     var s = '', i, m, occ;
-    if (state.last) {
+    // 动画播完这一步才算「落地」，所以动画期间先不画上一步的标记
+    if (!anim && state.last) {
       if (state.last.kind === 'move') {
         s += '<circle class="last-from" cx="' + X(state.last.from[1]) + '" cy="' + Y(state.last.from[0]) + '" r="46"/>';
         s += '<circle class="last-to" cx="' + X(state.last.to[1]) + '" cy="' + Y(state.last.to[0]) + '" r="46"/>';
       } else if (state.last.kind === 'flip') {
         s += '<circle class="last-to" cx="' + X(state.last.to[1]) + '" cy="' + Y(state.last.to[0]) + '" r="46"/>';
+      }
+    }
+    // 刚翻开的棋子：扩散环（与 iOS 端一致）
+    if (revealCell) {
+      for (i = 0; i < 3; i++) {
+        s += '<circle class="reveal-ring" cx="' + X(revealCell.c) + '" cy="' + Y(revealCell.r) +
+             '" r="' + (46 + i * 12) + '" stroke-opacity="' + (0.55 - i * 0.17) + '"/>';
       }
     }
     for (i = 0; i < moves.length; i++) {
@@ -125,6 +192,7 @@ if (typeof document !== 'undefined') (function () {
      起点端直接从圆心射出（走完这一步后起点必是空点），箭尖停在终点棋子
      边缘内侧 4pt，所以两侧的棋子面/汉字都不会被压住。 */
   function routeSVG() {
+    if (anim) return '';              // 动画期间这一步还没「落地」，先不画路线
     var l = state.last;
     if (!l || l.kind !== 'move') return '';
     var ax = X(l.from[1]), ay = Y(l.from[0]);
@@ -183,10 +251,26 @@ if (typeof document !== 'undefined') (function () {
   }
 
   function render() {
-    var s = '', r, c;
+    var s = '', r, c, a = anim ? animState(anim) : null;
     for (r = 0; r < 10; r++) for (c = 0; c < 9; c++) {
+      if (anim && anim.to.r === r && anim.to.c === c) continue;   // 终点格让位给在途的那枚
       var p = state.board[r][c];
       if (p) s += pieceSVG(p, r, c);
+    }
+    if (a) {
+      // 被吃掉的棋子：停在终点，随移动进度淡出
+      if (anim.victim) s += pieceSVG(anim.victim, anim.to.r, anim.to.c, { opacity: 1 - a.ease });
+      // 在途的棋子：直线滑向终点（暗子滑到后原地翻开：压到最扁的那一刻换面）
+      if (anim.mover) {
+        var face = (a.flip !== null && a.flip >= 0.5)
+          ? { t: anim.mover.t, s: anim.mover.s, up: true }
+          : anim.mover;
+        s += pieceSVG(face, anim.to.r, anim.to.c, {
+          x: X(anim.from.c) + (X(anim.to.c) - X(anim.from.c)) * a.ease,
+          y: Y(anim.from.r) + (Y(anim.to.r) - Y(anim.from.r)) * a.ease,
+          flatten: a.flatten
+        });
+      }
     }
     $('pieces').innerHTML = s;
     $('marks').innerHTML = marksSVG();
@@ -216,20 +300,21 @@ if (typeof document !== 'undefined') (function () {
   //    所以这里只有 doMove 一个行动入口，不存在 doFlip。
 
   function doMove(from, to) {
-    busy = true;
     var mover = state.board[from.r][from.c];
     var cap = state.board[to.r][to.c];
     var willReveal = !!(mover && !mover.up);   // 规则 4：暗子走完必须立刻翻开
     beep(cap ? 190 : 300, cap ? 0.17 : 0.08, cap ? 'square' : 'triangle', cap ? 0.13 : 0.1);
     stack.push(state);
     state = E.apply(state, { kind: 'move', from: [from.r, from.c], to: [to.r, to.c] });
-    selected = null; moves = []; hint = null; busy = false;
+    selected = null; moves = []; hint = null;
+    revealCell = null;
+    // 局面已经算完，棋盘先按「动画中的样子」画；动画期间 busy 挡住输入。
+    // 暗子「移动 0.6s + 翻开 0.4s」共 1s；明子没有可翻的面，只有移动段 0.6s。
+    busy = true;
+    anim = { from: { r: from.r, c: from.c }, to: { r: to.r, c: to.c },
+             mover: mover, victim: cap || null, didReveal: willReveal, t0: Date.now() };
     render();
-    if (willReveal) {
-      var el = document.querySelector('[data-cell="' + to.r + '-' + to.c + '"]');
-      if (el) el.classList.add('appear');
-    }
-    afterMove();
+    setTimeout(stepAnim, 16);
   }
 
   function afterMove() {
@@ -325,6 +410,7 @@ if (typeof document !== 'undefined') (function () {
 
   function giveUp() {
     if (!state || state.over) return;
+    anim = null; busy = false;      // 动画中途认输：先把动画收掉
     var loser = mode === 'ai' ? mySide : state.turn;
     state = E.clone(state);
     state.over = true;
@@ -404,6 +490,7 @@ if (typeof document !== 'undefined') (function () {
     mode = m;
     mySide = E.RED;
     stack = []; selected = null; moves = []; hint = null; busy = false;
+    anim = null; revealCell = null;
     state = E.newGame();
     $('menu').classList.remove('active');
     $('game').classList.add('active');
@@ -417,6 +504,7 @@ if (typeof document !== 'undefined') (function () {
 
   function backToMenu() {
     busy = false;
+    anim = null; revealCell = null;
     $('game').classList.remove('active');
     $('menu').classList.add('active');
   }

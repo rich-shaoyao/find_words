@@ -115,7 +115,8 @@ struct GameView: View {
 
     private var tools: some View {
         HStack(spacing: 8) {
-            ToolButton(title: "Undo", disabled: !store.canUndo) { store.undo() }
+            // 走子动画与 AI 回合期间不能悔棋（undo() 里也有同样的守卫，这里让按钮看出来）
+            ToolButton(title: "Undo", disabled: !store.canUndo || store.isBusy) { store.undo() }
             ToolButton(title: "Hint") { store.showHint() }
             ToolButton(title: "Resign") { store.resign() }
             ToolButton(title: "Help") { showHelp = true }
