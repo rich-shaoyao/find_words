@@ -186,33 +186,6 @@ if (typeof document !== 'undefined') (function () {
     return s;
   }
 
-  /* 上一步的移动路线：起点 → 终点，末端带箭头。
-     单独画在 #route 层（在棋子之后渲染）——终点立着刚走过来的那枚棋子
-     （相邻一步的圆心距就是 100pt，两子之间只余 12pt），压在棋子下面会被整条盖掉。
-     起点端直接从圆心射出（走完这一步后起点必是空点），箭尖停在终点棋子
-     边缘内侧 4pt，所以两侧的棋子面/汉字都不会被压住。 */
-  function routeSVG() {
-    if (anim) return '';              // 动画期间这一步还没「落地」，先不画路线
-    var l = state.last;
-    if (!l || l.kind !== 'move') return '';
-    var ax = X(l.from[1]), ay = Y(l.from[0]);
-    var bx = X(l.to[1]), by = Y(l.to[0]);
-    var dx = bx - ax, dy = by - ay;
-    var dist = Math.sqrt(dx * dx + dy * dy);
-    var TIP = 40;                            // 箭尖到终点圆心的距离（棋子半径 44，内侧 4pt）
-    if (!(dist > TIP + 8)) return '';
-    var ux = dx / dist, uy = dy / dist;
-    var tx = bx - ux * TIP, ty = by - uy * TIP;
-    var head = Math.min(26, dist - TIP - 6); // 箭头长度，且始终给线段留下可见长度
-    var rx = tx - ux * head, ry = ty - uy * head;
-    var nx = -uy, ny = ux, arm = head * 0.8, spread = head * 0.55;
-    var s = '<line class="last-route" x1="' + ax + '" y1="' + ay + '" x2="' + rx + '" y2="' + ry + '"/>';
-    s += '<path class="last-route" d="M' + (tx - ux * arm + nx * spread) + ' ' + (ty - uy * arm + ny * spread) +
-         ' L' + tx + ' ' + ty +
-         ' L' + (tx - ux * arm - nx * spread) + ' ' + (ty - uy * arm - ny * spread) + '"/>';
-    return s;
-  }
-
   function lootHTML(list, side) {
     var out = '';
     for (var i = 0; i < list.length; i++) {
@@ -274,7 +247,6 @@ if (typeof document !== 'undefined') (function () {
     }
     $('pieces').innerHTML = s;
     $('marks').innerHTML = marksSVG();
-    $('route').innerHTML = routeSVG();
     updateHud();
     updateBanner();
     $('btnUndo').disabled = stack.length === 0 || busy || state.over;
