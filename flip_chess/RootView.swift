@@ -31,5 +31,10 @@ struct RootView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onAppear {
+            // 启动 Google Mobile Ads SDK（幂等）并预载一条激励视频，
+            // 供结算页 Play again 使用（见 Ads/FlipAds.swift）。
+            FlipAds.shared.start()
+        }
     }
 }

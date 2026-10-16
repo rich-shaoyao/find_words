@@ -1,9 +1,10 @@
 name: CI Package (Debug / Release)
 
-# 云打包：本机 Xcode 15.2 能编译但不能归档到最新 SDK，macos-latest 的 Xcode 足够新。
+# 云打包：本机 Xcode 15.2 能编译但不能链接新版广告 SDK，macos-latest 的 Xcode 足够新。
 #
-# 工程已**完全不含第三方依赖**（没有 Podfile / workspace），因此直接用 -project 构建，
-# 不需要 pod install，也不需要 workspace。
+# 工程已通过 CocoaPods 接入六大广告平台 SDK（AdMob / Meta / Vungle / Chartboost /
+# InMobi / Unity Ads），因此**必须用 flip_chess.xcworkspace 构建**，并在构建前执行
+# pod install（Podfile.lock 已入库，走锁文件快速复现版本）。
 #
 # 产出 2 个变体：
 #   Debug    配置了 ADHOC_PROFILE 时用 Ad Hoc 描述文件签名 → **可直接装到已注册的真机**
@@ -43,9 +44,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install CocoaPods dependencies
+        run: |
+          pod --version
+          pod install
+
       - name: Show project targets
         run: |
-          xcodebuild -list -project flip_chess.xcodeproj
+          xcodebuild -list -workspace flip_chess.xcworkspace
 
       - name: Import distribution certificate
         if: env.HAS_CERT == 'true'
@@ -99,7 +105,7 @@ jobs:
           fi
 
           xcodebuild archive \
-            -project flip_chess.xcodeproj \
+            -workspace flip_chess.xcworkspace \
             -scheme flip_chess \
             -configuration "$CONFIG" \
             -destination 'generic/platform=iOS' \
@@ -107,7 +113,7 @@ jobs:
             "${SIGN_ARGS[@]}" \
             | xcbeautify --renderer github-actions 2>/dev/null || \
           xcodebuild archive \
-            -project flip_chess.xcodeproj \
+            -workspace flip_chess.xcworkspace \
             -scheme flip_chess \
             -configuration "$CONFIG" \
             -destination 'generic/platform=iOS' \

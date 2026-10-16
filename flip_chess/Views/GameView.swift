@@ -10,6 +10,9 @@ struct GameView: View {
     @ObservedObject var store: GameStore
     let onBack: () -> Void
     @State private var showHelp = false
+    /// 点了结算页的 Play again 才播广告：先把标志立起来并收起结算页，
+    /// 等 sheet 关闭动画结束（onDismiss）再全屏播激励视频，避免广告盖在半屏结算页上。
+    @State private var playAgainAfterAd = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -30,10 +33,24 @@ struct GameView: View {
         }
         .background(XQTheme.background)
         .sheet(isPresented: $showHelp) { HelpView() }
-        .sheet(item: $store.result) { info in
+        .sheet(item: $store.result, onDismiss: {
+            // Play again → 先收起结算页，再播一条激励视频，播完（或没有广告可用）才开下一局。
+            // 「尽力展示」：广告抽象层在未就绪 / 无填充时也会立即回调，玩法不被阻塞。
+            guard playAgainAfterAd else { return }
+            playAgainAfterAd = false
+            FlipAds.shared.presentRewarded { earned in
+                NSLog("[GameView] rewarded ad finished, earned=%d", earned ? 1 : 0)
+                store.start(mode: store.mode, level: store.level)
+            }
+        }) { info in
             ResultSheet(info: info,
-                        onPlayAgain: { store.start(mode: store.mode, level: store.level) },
+                        onPlayAgain: {
+                            playAgainAfterAd = true
+                            store.result = nil
+                        },
                         onBack: onBack)
+                // 结算页一出现就预载，保证点 Play again 时通常「即点即播」。
+                .onAppear { FlipAds.shared.loadRewarded() }
         }
     }
 

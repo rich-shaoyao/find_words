@@ -695,17 +695,22 @@ Swift 里必须换成 `Task.sleep` + `@MainActor` 保护，否则玩家连点会
 
 ### 9.4 落地进展（iOS）
 
-> 范围按用户选择做到 **P0 + P1 + P2**（引擎 / 可玩 / 手感），**不含 P3 广告位**。
+> 范围按用户选择做到 **P0 + P1 + P2**（引擎 / 可玩 / 手感）；**P3 广告位已开始**
+> （先重新引入 6 家 SDK 依赖层，再接结算页 Play again 激励视频，见下文「P3 广告位」）。
 > Bundle ID 已换为 **`com.yianzhixin.ios.flipchess`**（旧 `com.yianzhixin.ios.cluvio` 已从工程中彻底移除）。
 
 **命名**：仓库根目录保持 `find_words`，**工程内部一律改为 `flip_chess`**
 （`flip_chess.xcodeproj` / target / scheme / Swift 模块名 / `flip_chessTests`）。
 App 显示名保持 **Flip Chess**，Bundle ID 保持 **`com.yianzhixin.ios.flipchess`**。
 
-**依赖**：6 家广告 SDK 的 CocoaPods 引用（`Podfile` / `Podfile.lock` / `Pods/` /
+**依赖**：最早 6 家广告 SDK 的 CocoaPods 引用（`Podfile` / `Podfile.lock` / `Pods/` /
 `.xcworkspace` / pbxproj 里的 `[CP]` 脚本阶段 / `Info.plist` 里的 `GADApplicationIdentifier`
-与 `SKAdNetworkItems`）以及 `Ads/` 目录**已全部移除**。
-工程现在零第三方依赖，直接 `-project` 构建，不再需要 `pod install`。
+与 `SKAdNetworkItems`）以及 `Ads/` 目录曾被一并移除，工程一度零第三方依赖。
+**现已按要求重新接入 6 家广告平台 SDK（依赖层）**：`Podfile` / `Podfile.lock` /
+`flip_chess.xcworkspace` 已入库，构建改走 **workspace + `pod install`**
+（`-project` 不再可用；CI 见 `.github/workflows/package.yml`）。
+`Info.plist` 里的 `GADApplicationIdentifier` / `SKAdNetworkItems` 与 `Ads/` 接入层
+已随 P3 首批广告位补齐（见下文「P3 广告位」）。
 
 旧玩法代码整体删除（11 个文件），新结构：
 
@@ -715,6 +720,7 @@ flip_chess/                       ← 源码目录
 ├─ Game/     GameStore / SoundKit                  ← ui.js 的状态层与音效合成
 ├─ Theme/    XQTheme                               ← prototype.html 的 CSS 令牌
 ├─ Views/    BoardView / GameView / MenuView / HelpView / ResultSheet
+├─ Ads/      FlipAds                               ← 广告抽象层（激励视频，P3）
 ├─ RootView.swift                                  菜单 ↔ 对局 路由
 └─ FlipChessApp.swift
 flip_chessTests/
@@ -750,18 +756,40 @@ jsc docs/dark-chess/swift-verify/opening-baseline.js > /tmp/js.txt   # 与 Swift
 xcrun --sdk iphonesimulator swiftc -typecheck -target arm64-apple-ios17.2-simulator \
       -sdk "$(xcrun --sdk iphonesimulator --show-sdk-path)" flip_chess/**/*.swift
 
-# 整包构建（去掉广告 SDK 后本机也可以了，不再需要 pod install）
-xcodebuild -project flip_chess.xcodeproj -scheme flip_chess -configuration Debug \
+# 整包构建（已接入 6 家广告 SDK：必须走 workspace，先装依赖）
+pod install
+xcodebuild -workspace flip_chess.xcworkspace -scheme flip_chess -configuration Debug \
            -destination 'generic/platform=iOS Simulator' build CODE_SIGNING_ALLOWED=NO
+# 本机 Xcode 15.2 实测：全部编译通过（含 Ads/FlipAds.swift——产物
+# Objects-normal/*/FlipAds.o 已生成），仅链接（Ld）失败 —— UnityAds 4.20 /
+# ChartboostSDK 9.14 由新版工具链构建，引用新版 Swift 运行库符号（swiftXPC /
+# swift_Builtin_float / ClassMethodInvoker …）。属工具链限制，完整链接交给云打包。
 ```
+
+#### P3 广告位（进行中）
+
+| 项 | 现状 |
+| --- | --- |
+| 依赖层 | 6 家平台 SDK 经 CocoaPods 接入（见上文「依赖」） |
+| 首批广告位 | **结算页 Play again → 激励视频**（AdMob，官方测试 ID `ca-app-pub-3940256099942544/1712485313`） |
+| 展示策略 | **尽力展示**（用户 2026-10 决策）：就绪则播完再开下一局；未就绪 / 无填充**不阻塞**，直接开新局并后台预载。「必须看完」的严格门控未启用，但 `presentRewarded` 已回调 `earned`，将来要切换只需改调用点 |
+| 接入点 | `Ads/FlipAds.swift`（load / isReady / present 三件套 + 播完自动重拉 + 宿主 VC 选取）；`Views/GameView.swift` 在结算 sheet 的 `onDismiss` 里播广告（避免广告盖在半屏结算页上）；`RootView` 启动时初始化 SDK 并预载 |
+| 平台配置 | `Info.plist` 已配 `GADApplicationIdentifier`（测试 App ID）与 50 条 `SKAdNetworkItems` |
+| 换正式 ID | 只改两处：`FlipAds.rewardedAdUnitID` 与 `Info.plist` 的 `GADApplicationIdentifier` |
+| 渠道 | Debug / Release **都生效**（用户 2026-10 决策，无编译期开关） |
+
+未做的：ATT（`NSUserTrackingUsageDescription` + 授权请求）、其余 5 家平台的广告位、
+中介（Mediation）聚合、插屏广告位。
 
 #### 尚未验证的部分
 
 - **真机运行与手感**：构建已通过，但渲染效果、长按时序、音色仍需在模拟器/真机上肉眼与耳朵确认。
 - **`xcodebuild test`**：`flip_chessTests` target 已建好且能被 `xcodebuild -list` 识别；
   同一批断言已用命令行自检跑绿，XCTest 通道尚未实跑。
-- **P3 广告位**：本轮按要求把 6 家 SDK 依赖**整体移除**了。将来若要接广告，
-  需重新引入依赖层（那时建议只接 AdMob，不再上 6 家）。
+- **P3 广告位播放链路**：接入本机只验证到**编译通过**（链接受本机工具链限制，见上文「验证方式」）。
+  激励视频能否真的弹出、播完是否正常开下一局、无填充时是否照常开新局，需云打包 ipa
+  装真机确认（测试 ID 会返回带 "Test mode" 标签的演示广告；日志前缀 `[FlipAds]` /
+  `[GameView]` 可核对加载 → 播放 → 重拉链路）。
 
 ---
 
@@ -806,10 +834,13 @@ $ jsc ui.test.js               ← 交互层（手写 DOM 桩驱动真实点击�
 > 注意走子动画按**真实时间**推进，而 JXA 里时间不流逝：测试桩把 `Date.now` 换成假时钟、
 > 每 flush 一个定时器往前拨 100ms，1 秒的动画于是在 ~10 帧内播完（见 `ui.test.js` 的 `tick()`）。
 
-> 本机 Xcode 15.2 现在可以直接跑工程（工程零第三方依赖，不需要链接 AdMob）：
+> 本机 Xcode 15.2 在工程**零第三方依赖**期间可以直接跑工程（不需要链接 AdMob）：
 > `xcodebuild build -scheme flip_chess -destination 'generic/platform=iOS Simulator'`、
 > `xcodebuild test -scheme flip_chess -destination 'platform=iOS Simulator,name=iPhone 15'`
 > （5 个 XCTest 全绿：引擎检查表 / 开局跨端基线 / 走子动画时间线 ×3）。
+> **注**：工程现已重新接入 6 家广告 SDK，上述 `-project` 直跑不再适用 ——
+> 本机改为 `pod install` + `-workspace flip_chess.xcworkspace`，本机只能编译通过、
+> 链接需交给 GitHub Actions 云打包（见 §9.4）。
 
 > 说明：`ui.test.js` 验证的是**交互逻辑与状态流转**，不覆盖 CSS/SVG 的视觉呈现。
 > 视觉效果请在浏览器里打开 `prototype.html` 实地确认（本机沙箱无法启动图形浏览器，这一步需要你来看）。
